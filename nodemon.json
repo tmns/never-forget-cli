@@ -12,12 +12,10 @@
   
   "runOnChangeOnly": false,
   "watch": [
-    "src/**/*.js",
-    "src/**/*.graphql",
-    "src/**/*.gql"
+    "src/**/*.js"
   ],
   "env": {
     "NODE_ENV": "development"
   },
-  "ext": "js,json,graphql"
+  "ext": "js"
 }
