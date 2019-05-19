@@ -1,15 +1,14 @@
-'use strict;'
+'use strict;';
 
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import { prompt } from 'inquirer';
+import { registerPrompt, prompt } from 'inquirer';
+import fuzzy from 'fuzzy';
 
-import {
-  defaultDbUrl,
-  dbUrlPath,
-  attemptConnection
-} from './db';
+registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
+
+import { defaultDbUrl, dbUrlPath, attemptConnection } from './db';
 
 import deckCtrlrs from '../resources/deck/deck.controller';
 import cardCtrlrs from '../resources/card/card.controller';
@@ -18,24 +17,21 @@ var readFile = promisify(fs.readFile);
 var writeFile = promisify(fs.writeFile);
 var mkdir = promisify(fs.mkdir);
 
-
 /******************************
  * DATABASE PROMPTS
  ******************************/
 
-// Walks user through configuring the database 
-// 1) prompt user for the database they want to use, 
-// 2) save it to a local config file
-async function configureDb () {
+// Walks user through configuring the database
+// 1) Prompt user for the database they want to use,
+// 2) Save it to a local config file
+async function configureDb() {
   var answer = await prompt([
     {
       type: 'list',
       name: 'dbOption',
-      message: "You've chosen to manually configure the database URL. Would you like to use the default or your own?",
-      choices: [
-        `Use the default URL (${defaultDbUrl})`,
-        'Use a different URL'
-      ]
+      message:
+        "You've chosen to manually configure the database URL. Would you like to use the default or your own?",
+      choices: [`Use the default URL (${defaultDbUrl})`, 'Use a different URL']
     }
   ]);
 
@@ -45,32 +41,34 @@ async function configureDb () {
       {
         type: 'input',
         name: 'dbUrl',
-        message: 'What is the URL of the database you wish to use? (eg. mongodb://[username:password@]host[:port][/[database])',
+        message:
+          'What is the URL of the database you wish to use? (eg. mongodb://[username:password@]host[:port][/[database])',
         // if the user enters nothing, fall back to using default
-        default: function () {
+        default: function() {
           return defaultDbUrl;
         },
         // simple validation on the URL
-        validate: function (value) {
-          var pass = value.match(/^mongodb(\+srv)?:\/\/(.+:.+@)?.+(:\d{1,5})?\/.+/);
+        validate: function(value) {
+          var pass = value.match(
+            /^mongodb(\+srv)?:\/\/(.+:.+@)?.+(:\d{1,5})?\/.+/
+          );
           if (pass) {
             return true;
           }
           return 'You need to provide a valid mongodb url.';
         }
       }
-    ])      
-    
+    ]);
+
     return testAndSaveConnection(answer.dbUrl);
   } else {
     return testAndSaveConnection(defaultDbUrl);
   }
 }
 
-// helper function for testing and saving the database URL
-// walks the user through saving the url to a local config file
+// Helper function for testing and saving the database URL
+// Walks the user through saving the url to a local config file
 async function testAndSaveConnection(url) {
-
   try {
     await attemptConnection(url);
     let answer = await prompt([
@@ -80,8 +78,8 @@ async function testAndSaveConnection(url) {
         message: `Test connection to ${url} successful. Would you like to save the database URL to ${dbUrlPath}?`,
         default: true
       }
-    ])
-  
+    ]);
+
     if (answer.saveToFile) {
       try {
         await mkdir(path.join(__dirname, 'config'));
@@ -91,16 +89,23 @@ async function testAndSaveConnection(url) {
 
       try {
         await writeFile(dbUrlPath, url, 'utf-8');
-        console.log(`Successfully saved ${url} to ${dbUrlPath}.\nYour database has been configured!`);
+        console.log(
+          `Successfully saved ${url} to ${dbUrlPath}.\nYour database has been configured!`
+        );
       } catch (err) {
-        console.error(`The following error occurred when attempting to save the URL: ${err}.\nDatabase has not been configured.`);
+        console.error(
+          `The following error occurred when attempting to save the URL: ${err}.\nDatabase has not been configured.`
+        );
       }
     } else {
-      console.log('You chose to not safe the database URL. Configuration not successful.');
+      console.log(
+        'You chose to not safe the database URL. Configuration not successful.'
+      );
     }
-
   } catch (err) {
-    console.error(`Could not connect to ${url}. Please check it is valid and try again. Exiting.`);
+    console.error(
+      `Could not connect to ${url}. Please check it is valid and try again. Exiting.`
+    );
   }
   process.exit();
 }
@@ -109,16 +114,16 @@ async function testAndSaveConnection(url) {
  * DECK PROMPTS
  ******************************/
 
-// walks the user through creating a deck of flash cards
-// ask user for deck name and description
-async function createDeck () {
-
+// Walks the user through creating a deck of flash cards
+// 1) Ask user for deck name and description
+// 2) Create deck in database
+async function createDeck() {
   var answers = await prompt([
     {
       type: 'input',
       name: 'deckName',
       message: "You've chosen to create a deck. What do you want to name it?",
-      validate: function (value) {
+      validate: function(value) {
         var pass = value.trim().match(/^(?!.*:.*)^.+/); // due to how we parse decks during card adding, we can't allow ':'
         if (pass) {
           return true;
@@ -129,7 +134,7 @@ async function createDeck () {
     {
       type: 'input',
       name: 'deckDescription',
-      message: 'Provide a description for your new deck (optional)' 
+      message: 'Provide a description for your new deck (optional)'
     }
   ]);
 
@@ -140,7 +145,11 @@ async function createDeck () {
 
   try {
     await deckCtrlrs.createOne(details);
-    console.log(`Deck ${details.name} successfully created. Now you can (i)mport or (a)dd some cards to it!`);  
+    console.log(
+      `Deck ${
+        details.name
+      } successfully created. Now you can (i)mport or (a)dd some cards to it!`
+    );
   } catch (err) {
     console.log(`Error encountered while creating deck: ${err}.\nExiting.`);
   }
@@ -152,40 +161,17 @@ async function createDeck () {
  * CARD PROMPTS
  ******************************/
 
-// walks a user through adding a card to a deck
-async function addCard () {
-  
-  // retrieve all decks from database
-  var decks = await deckCtrlrs.getMany({});
+// Walks a user through adding a card to a deck
+// 1) Present user with list of decks to choose from
+// 2) After deck choice, present user with card creation prompts
+// 3) Create card in database
+async function addCard() {
+  // retrieve deck ID
+  var deckId = await retrieveDeckId();
 
-  // turn our mongodb object of decks into an array of choices for inquirer
-  var choices = decks.map(function mapper(deck) {
-    let choice = deck.name;
-    if (deck.description) {
-      choice += `: ${deck.description}`;
-    }
-    return choice;
-  });    
-
-  // have the user choose which deck to add the card to
-  var deckAnswer = await prompt([
-    {
-      type: 'list',
-      name: 'deck',
-      message: "You've chosen to add a card to a deck. Which deck would you like to add a card to?",
-      choices: choices
-    }
-  ]);
-
-  // parse out the deck name...
-  let deckName = deckAnswer.deck;
-  if (deckName.includes(':')) {
-    deckName = deckName.split(':')[0];
-  }
-  // ...and retrieve the deck ID to be used for the create query
-  var deckId = decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
-
-  console.log('Now you get to create your card! Fill in the following details.');
+  console.log(
+    'Now you get to create your card! Fill in the following details.'
+  );
 
   // now lets get the details for the new card
   var cardAnswers = await prompt([
@@ -193,35 +179,36 @@ async function addCard () {
       type: 'input',
       name: 'prompt',
       message: 'Prompt (you can think of this as the front of the card)',
-      validate: function (value) {
+      validate: function(value) {
         var pass = value.trim().match(/^.+/);
         if (pass) {
           return true;
         }
-        return 'Sorry, you must enter a prompt for the card.'
+        return 'Sorry, you must enter a prompt for the card.';
       }
     },
     {
       type: 'input',
       name: 'promptExample',
-      message: "A second detail for the prompt (eg an example sentence using the prompt's value, optional)"
+      message:
+        "A second detail for the prompt (eg an example sentence using the prompt's value, optional)"
     },
     {
       type: 'input',
       name: 'target',
       message: 'Target (you can think of this as the back of the card)',
-      validate: function (value) {
+      validate: function(value) {
         var pass = value.trim().match(/^.+/);
         if (pass) {
           return true;
         }
-        return 'Sorry, you must enter a target for the card.'
+        return 'Sorry, you must enter a target for the card.';
       }
     },
     {
       type: 'input',
       name: 'targetExample',
-      message: "A second detail for the target (optional)"
+      message: 'A second detail for the target (optional)'
     }
   ]);
 
@@ -230,8 +217,8 @@ async function addCard () {
     deck: deckId,
     prompt: cardAnswers.prompt,
     target: cardAnswers.target
-  }
-  
+  };
+
   if (cardAnswers.promptExample != '') {
     cardDetails['promptExample'] = cardAnswers.promptExample;
   }
@@ -250,4 +237,119 @@ async function addCard () {
   process.exit();
 }
 
-export { configureDb, createDeck, addCard };
+// Helper function to prompt the user for the deck they wish to edit
+// And then retrieve the deck ID from their response
+async function retrieveDeckId() {
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+
+  // turn our mongodb object of decks into an array of choices for inquirer
+  var choices = decks.map(decksToChoices);
+
+  // have the user choose which deck to add the card to
+  var deckAnswer = await prompt([
+    {
+      type: 'list',
+      name: 'deck',
+      message:
+        "You've chosen to edit a deck. Which deck would you like to edit?",
+      choices: choices
+    }
+  ]);
+
+  // parse out the deck name...
+  let deckName = deckAnswer.deck;
+  if (deckName.includes(':')) {
+    deckName = deckName.split(':')[0];
+  }
+
+  // ...and return the deck ID to be used for the create query
+  return decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
+}
+
+function decksToChoices(deck) {
+  let choice = deck.name;
+  if (deck.description) {
+    choice += `: ${deck.description}`;
+  }
+  return choice;
+}
+
+// Walks the user through deleting one or more cards
+// 1) Presents user with list of decks to choose from
+// 2) After deck is chosen, presents user with list of (filterable) cards
+// 3) Removes chosen card(s)
+async function deleteCards() {
+  // retrieve deck ID
+  var deckId = await retrieveDeckId();
+
+  var cards = await cardCtrlrs.getMany({ deck: deckId });
+  
+  var choices = cards.map(function cardsToChoices(card) {
+    return `${card.prompt} --> ${card.target}`;
+  })
+
+  var selectedCards = await prompt([
+    {
+      type: 'checkbox-plus',
+      name: 'cards',
+      message: 'Choose the card(s) you wish to delete (you can filter cards by typing)',
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: function(answersSoFar, input) {
+        input = input || '';
+
+        return new Promise(function(resolve) {
+          var fuzzyResult = fuzzy.filter(input, choices);
+          
+          var data = fuzzyResult.map(function(element) {
+            return element.original;
+          });
+          
+          resolve(data);
+        })
+      }
+    }
+  ]);
+
+  // we'll determine our card IDs based on their prompt values
+  // so let's first parse it out
+  let cardPrompts = selectedCards.cards.map(function parsePrompt(card) {
+    return card.split(' -->')[0];
+  })
+
+  try {
+    await removeCards(cardPrompts, cards);
+    console.log('Card(s) successfully deleted.');
+  } catch (err) {
+    console.log(err);
+  }
+
+  process.exit();
+}
+
+// async version of forEAch
+async function asyncForEach(array, callback) {
+  for (let i = 0; i < array.length; i++) {
+    await callback(array[i], i, array);
+  }
+}
+
+// helper function to remove the selected cards from the deck
+async function removeCards(cardPrompts, cards) {
+  // loop over each card prompt...
+  await asyncForEach(cardPrompts, async function removeCardById(cardPrompt) {
+    // ...determine its mongodb ID...
+    let cardId =  cards.filter(card => card.prompt == cardPrompt).map(card => card._id)[0];
+    // ...and call the remove query
+    try {
+      await cardCtrlrs.removeOne(cardId);
+    } catch(err) {
+      throw new Error(`Error encountered while deleting card: ${err}.\nExiting.`);
+    }
+
+  })
+}
+
+export { configureDb, createDeck, addCard, deleteCards };

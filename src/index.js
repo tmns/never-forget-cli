@@ -7,7 +7,8 @@ import program from 'commander';
 import { 
   configureDb,
   createDeck,
-  addCard
+  addCard,
+  deleteCards
 } from './utils/prompts';
 
 import { connectAppToDB } from './utils/db';
@@ -33,6 +34,12 @@ program
   .alias('a')
   .description('add a card')
   .action(addCard);
+
+program
+  .command('delcards')
+  .alias('dc')
+  .description('delete one or more cards')
+  .action(deleteCards);
 
 start();
 

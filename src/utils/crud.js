@@ -41,7 +41,7 @@ function createOne(model) {
 function updateOne(model) {
   return async function update(id, details) {
     var updatedDoc = await model
-      .findOneByIdAndUpdate({ id }, details, { new: true })
+      .findByIdAndUpdate({ id }, details, { new: true })
       .lean()
       .exec();
 
@@ -55,8 +55,8 @@ function updateOne(model) {
 
 function removeOne(model) {
   return async function(id) {
-    var removedDoc = await model.findOneByΙdAndRemove({ id });
-
+    var removedDoc = await model.findByIdAndDelete(id);
+    
     if (!removedDoc) {
       throw new Error('Nothing removed');
     }
