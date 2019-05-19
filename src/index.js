@@ -6,7 +6,8 @@ import program from 'commander';
 
 import { 
   configureDb,
-  createDeck
+  createDeck,
+  addCard
 } from './utils/prompts';
 
 import { connectAppToDB } from './utils/db';
@@ -26,6 +27,12 @@ program
   .alias('cd')
   .description('create a new deck')
   .action(createDeck);
+
+program
+  .command('addcard')
+  .alias('a')
+  .description('add a card')
+  .action(addCard);
 
 start();
 

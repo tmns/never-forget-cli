@@ -12,6 +12,7 @@ import {
 } from './db';
 
 import deckCtrlrs from '../resources/deck/deck.controller';
+import cardCtrlrs from '../resources/card/card.controller';
 
 var readFile = promisify(fs.readFile);
 var writeFile = promisify(fs.writeFile);
@@ -118,11 +119,11 @@ async function createDeck () {
       name: 'deckName',
       message: "You've chosen to create a deck. What do you want to name it?",
       validate: function (value) {
-        var pass = value.trim().match(/^.+/);
+        var pass = value.trim().match(/^(?!.*:.*)^.+/); // due to how we parse decks during card adding, we can't allow ':'
         if (pass) {
           return true;
         }
-        return 'You need to enter in something for the deck name.';
+        return 'Sorry, you must give the deck a name (and the ":" character is not allowed).';
       }
     },
     {
@@ -130,7 +131,7 @@ async function createDeck () {
       name: 'deckDescription',
       message: 'Provide a description for your new deck (optional)' 
     }
-  ])
+  ]);
 
   let details = { name: answers.deckName };
   if (answers.deckDescription != '') {
@@ -141,10 +142,112 @@ async function createDeck () {
     await deckCtrlrs.createOne(details);
     console.log(`Deck ${details.name} successfully created. Now you can (i)mport or (a)dd some cards to it!`);  
   } catch (err) {
-    console.log(`Error encountered while creating deck:${err}.\nExiting.`);
+    console.log(`Error encountered while creating deck: ${err}.\nExiting.`);
   }
 
   process.exit();
 }
 
-export { configureDb, createDeck };
+/******************************
+ * CARD PROMPTS
+ ******************************/
+
+// walks a user through adding a card to a deck
+async function addCard () {
+  
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+
+  // turn our mongodb object of decks into an array of choices for inquirer
+  var choices = decks.map(function mapper(deck) {
+    let choice = deck.name;
+    if (deck.description) {
+      choice += `: ${deck.description}`;
+    }
+    return choice;
+  });    
+
+  // have the user choose which deck to add the card to
+  var deckAnswer = await prompt([
+    {
+      type: 'list',
+      name: 'deck',
+      message: "You've chosen to add a card to a deck. Which deck would you like to add a card to?",
+      choices: choices
+    }
+  ]);
+
+  // parse out the deck name...
+  let deckName = deckAnswer.deck;
+  if (deckName.includes(':')) {
+    deckName = deckName.split(':')[0];
+  }
+  // ...and retrieve the deck ID to be used for the create query
+  var deckId = decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
+
+  console.log('Now you get to create your card! Fill in the following details.');
+
+  // now lets get the details for the new card
+  var cardAnswers = await prompt([
+    {
+      type: 'input',
+      name: 'prompt',
+      message: 'Prompt (you can think of this as the front of the card)',
+      validate: function (value) {
+        var pass = value.trim().match(/^.+/);
+        if (pass) {
+          return true;
+        }
+        return 'Sorry, you must enter a prompt for the card.'
+      }
+    },
+    {
+      type: 'input',
+      name: 'promptExample',
+      message: "A second detail for the prompt (eg an example sentence using the prompt's value, optional)"
+    },
+    {
+      type: 'input',
+      name: 'target',
+      message: 'Target (you can think of this as the back of the card)',
+      validate: function (value) {
+        var pass = value.trim().match(/^.+/);
+        if (pass) {
+          return true;
+        }
+        return 'Sorry, you must enter a target for the card.'
+      }
+    },
+    {
+      type: 'input',
+      name: 'targetExample',
+      message: "A second detail for the target (optional)"
+    }
+  ]);
+
+  // create the card details object we'll use for the query
+  let cardDetails = {
+    deck: deckId,
+    prompt: cardAnswers.prompt,
+    target: cardAnswers.target
+  }
+  
+  if (cardAnswers.promptExample != '') {
+    cardDetails['promptExample'] = cardAnswers.promptExample;
+  }
+
+  if (cardAnswers.targetExample != '') {
+    cardDetails['targetExample'] = cardAnswers.targetExample;
+  }
+
+  try {
+    await cardCtrlrs.createOne(cardDetails);
+    console.log(`Card successfully added. Now you can (s)tudy it!`);
+  } catch (err) {
+    console.log(`Error encountered while creating card: ${err}.\nExiting.`);
+  }
+
+  process.exit();
+}
+
+export { configureDb, createDeck, addCard };

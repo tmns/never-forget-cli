@@ -14,9 +14,9 @@ function getOne(model) {
 }
 
 function getMany(model) {
-  return async function get(match) {
+  return async function get(target) {
     var docs = await model
-      .find({ match })
+      .find(target)
       .lean()
       .exec();
 
