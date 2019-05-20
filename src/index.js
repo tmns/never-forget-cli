@@ -85,7 +85,7 @@ start();
 // **********************
 
 async function start () {
-  if (process.argv[2] != 'configure' && process.argv[2] != 'c') {
+  if (!process.argv[2].match(/^(c|configure|-h|--help)$/)) {
     try {
       await connectAppToDB();
     } catch(err) {
