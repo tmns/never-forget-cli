@@ -15,7 +15,8 @@ import {
 import { 
   addCard, 
   deleteCards,
-  editCardDetails
+  editCardDetails,
+  browseCards
 } from './prompts/card';
 
 import { connectAppToDB } from './utils/db';
@@ -65,6 +66,12 @@ program
   .alias('ec')
   .description('edit card details (prompt, target, etc.)')
   .action(editCardDetails);
+
+program
+  .command('browse')
+  .alias('b')
+  .description('browse cards')
+  .action(browseCards);
 
 start();
 

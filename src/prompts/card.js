@@ -180,6 +180,7 @@ async function attemptCardDelete(cardPrompts, cards) {
 async function editCardDetails () {
   // retrieve deck ID
   var [deckId] = await retrieveDeckId();
+
   // present cards associated with deck ID
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   
@@ -268,4 +269,72 @@ async function editCardDetails () {
   process.exit();
 }
 
-export { addCard, deleteCards, editCardDetails };
+// Walks user through browsing cards
+// 1) Present user with list of decks
+// 2) Present user with list of cards associated with chosen deck
+// 3) Upon card selection, present use with card details
+// 4) Repeat if user wants to continue browsing (with same deck)
+async function browseCards(_, deckId) {
+  // if this is the first card being displayed for a particular session
+  // of card browsing, we must retrieve the deckID manually
+  if (!deckId) {
+    // retrieve deck ID
+    var [deckId, deckName] = await retrieveDeckId(true);
+  }
+
+  // present cards associated with deck ID
+  var cards = await cardCtrlrs.getMany({ deck: deckId });
+  
+  var choices = cards.map(function cardsToChoices(card) {
+    return `${card.prompt} --> ${card.target}`;
+  })
+
+  // present user with associated cards to choose from
+  var cardAnswer = await prompt([
+    {
+      type: 'autocomplete',
+      name: 'card',
+      message: "Choose a card to view its details.",
+      pageSize: 10,
+      source: function(answersSoFar, input) {
+        return fuzzySearch(answersSoFar, input, choices);
+      }
+    }
+  ]);
+
+  // parse out card prompt and use it to retrieve card details from database
+  var cardPrompt = cardAnswer.card.split(' -->')[0];
+  var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
+
+  // show user card details
+  console.log(
+    `Card details...
+    Prompt: ${cardDetails.prompt}
+    Example: ${cardDetails['promptExample'] ? cardDetails.promptExample : ''}
+    Target: ${cardDetails.target}
+    Example: ${cardDetails['targetExample'] ? cardDetails.targetExample : ''}`
+  );
+
+  // determine if user wants to continue browsing the deck  
+  let answer = await prompt([
+    {
+      type: 'confirm',
+      name: 'continue',
+      message: `Would you like to continue browsing ${deckName}?`,
+      default: true
+    }
+  ])
+
+  if (answer.continue) {
+    await browseCards(_, deckId);
+  }
+  
+  process.exit();
+}
+
+export { 
+  addCard, 
+  deleteCards, 
+  editCardDetails, 
+  browseCards 
+};
