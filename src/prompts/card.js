@@ -102,7 +102,8 @@ async function addCard(_, deckId) {
 // Walks the user through deleting one or more cards
 // 1) Present user with list of decks to choose from
 // 2) After deck is chosen, present user with list of (filterable) cards
-// 3) Remove chosen card(s)
+// 3) Prompt user for confirmation to delete
+// 4) Delete chosen card(s)
 async function deleteCards() {
   // retrieve deck ID
   var deckId = await retrieveDeckId();
@@ -137,17 +138,29 @@ async function deleteCards() {
     }
   ]);
 
-  // we'll determine our card IDs based on their prompt values
-  // so let's first parse it out
-  let cardPrompts = selectedCards.cards.map(function parsePrompt(card) {
-    return card.split(' -->')[0];
-  })
+  // confirm user wants to delete the selected card(s)
+  var isSure = await prompt([
+    {
+      type: 'confirm',
+      name: 'deleteCards',
+      message: `You've chosen to delete the following cards: ${selectedCards.cards.join(', ')}. This cannot be undone. Are you sure this is what you want to do?`,
+      default: false
+    }
+  ]);
 
-  try {
-    await attemptCardDelete(cardPrompts, cards);
-    console.log('Card(s) successfully deleted.');
-  } catch (err) {
-    console.log(err);
+  if (isSure.deleteCards) {
+    // we'll determine our card IDs based on their prompt values
+    // so let's first parse it out
+    let cardPrompts = selectedCards.cards.map(function parsePrompt(card) {
+      return card.split(' -->')[0];
+    })
+  
+    try {
+      await attemptCardDelete(cardPrompts, cards);
+      console.log('Card(s) successfully deleted.');
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   process.exit();
