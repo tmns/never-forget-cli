@@ -124,17 +124,7 @@ async function deleteCards() {
       highlight: true,
       searchable: true,
       source: function(answersSoFar, input) {
-        input = input || '';
-
-        return new Promise(function(resolve) {
-          var fuzzyResult = fuzzy.filter(input, choices);
-          
-          var data = fuzzyResult.map(function(element) {
-            return element.original;
-          });
-          
-          resolve(data);
-        })
+        return fuzzySearch(answersSoFar, input, choices);
       }
     }
   ]);
