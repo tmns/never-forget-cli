@@ -1,7 +1,9 @@
-'use strict;';
+'use strict';
 
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
 import { registerPrompt, prompt } from 'inquirer';
-import fuzzy from 'fuzzy';
 
 registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
@@ -13,6 +15,8 @@ import {
   fuzzySearch 
 } from './shared';
 
+var writeFile = promisify(fs.writeFile);
+
 // Walks a user through adding a card to a deck
 // 1) Present user with list of decks to choose from
 // 2) After deck choice, present user with card creation prompts
@@ -23,7 +27,8 @@ async function addCard(_, deckId) {
   // of card adding, we must retrieve the deckID manually
   if (!deckId) {
     // retrieve deck ID
-    var [deckId, deckName] = await retrieveDeckId();
+    let message = "You've chosen to add one or more cards. Which deck would you like to add the card(s) to?";
+    var [deckId, deckName] = await retrieveDeckId(message);
     console.log(
       'Now you get to create your card! Fill in the following details.'
     );
@@ -107,7 +112,8 @@ async function addCard(_, deckId) {
 // 4) Delete chosen card(s)
 async function deleteCards() {
   // retrieve deck ID
-  var [deckId] = await retrieveDeckId();
+  let message = "You've chosen to delete one or more cards. From which deck would you like to delete the card(s)?"
+  var [deckId] = await retrieveDeckId(message);
 
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   
@@ -179,7 +185,8 @@ async function attemptCardDelete(cardPrompts, cards) {
 // 4) Update card details in database
 async function editCardDetails () {
   // retrieve deck ID
-  var [deckId] = await retrieveDeckId();
+  let message = "You've chosen to edit a card's details. In which deck is the card located?"
+  var [deckId] = await retrieveDeckId(message);
 
   // present cards associated with deck ID
   var cards = await cardCtrlrs.getMany({ deck: deckId });
@@ -279,7 +286,8 @@ async function browseCards(_, deckId) {
   // of card browsing, we must retrieve the deckID manually
   if (!deckId) {
     // retrieve deck ID
-    var [deckId, deckName] = await retrieveDeckId(true);
+    let message = "Choose a deck to browse its cards.";
+    var [deckId, deckName] = await retrieveDeckId(message);
   }
 
   // present cards associated with deck ID
@@ -332,9 +340,56 @@ async function browseCards(_, deckId) {
   process.exit();
 }
 
+// Walks user through exporting a deck of cards
+// 1) Present user with choice of decks
+// 2) Prompt user for path to export to (default is the file's current dir)
+// 3) Retrieve cards associated with deck from db
+// 4) Attempt to write JSON.stringify'd cards to export path
+async function exportCards () {
+
+  // present user with list of decks to choose from
+  let message = "You've chosen to export a deck of cards. Which deck would you like to export?";
+  var [deckId, deckName] = await retrieveDeckId(message);
+
+  // determine export path
+  var answer = await prompt([
+    {
+      type: 'input',
+      name: 'location',
+      message: 'Where do you wish to export the cards?',
+      default: __dirname
+    }
+  ]);
+
+  let exportPath = path.join(answer.location, `${deckName.split(' ').join('-')}-export.json`);
+  console.log(`Exporting ${deckName} to ${exportPath}`);
+
+  // query db for associated cards and format them 
+  let cards = await cardCtrlrs.getMany({ deck: deckId });
+  let formattedCards = cards.map(function format(card) {
+    return {
+      prompt: card.prompt,
+      promptExample: card['promptExample'] ? card.promptExample : '',
+      target: card.target,
+      targetExample: card['targetExample'] ? card.targetExample : ''
+    }
+  })
+
+  // attempt to write JSON.stringify'd cards to export path
+  try {
+    await writeFile(exportPath, JSON.stringify(formattedCards));
+    console.log(`Deck ${deckName} successfully exported to ${exportPath}`);
+  } catch (err) {
+    console.log(`Error exporting deck: ${err}.\nExiting.`);
+  }
+
+  process.exit();
+}
+
 export { 
   addCard, 
   deleteCards, 
   editCardDetails, 
-  browseCards 
+  browseCards,
+  exportCards
 };

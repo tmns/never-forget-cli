@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-'use strict;'
+'use strict';
 
 import program from 'commander';
 
@@ -16,7 +16,8 @@ import {
   addCard, 
   deleteCards,
   editCardDetails,
-  browseCards
+  browseCards,
+  exportCards
 } from './prompts/card';
 
 import { connectAppToDB } from './utils/db';
@@ -72,6 +73,12 @@ program
   .alias('b')
   .description('browse cards')
   .action(browseCards);
+
+program
+  .command('export')
+  .alias('ex')
+  .description('export a deck of cards')
+  .action(exportCards);
 
 start();
 

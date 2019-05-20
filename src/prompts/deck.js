@@ -1,4 +1,4 @@
-'use strict;';
+'use strict';
 
 import { registerPrompt, prompt } from 'inquirer';
 import fuzzy from 'fuzzy';
@@ -160,7 +160,8 @@ async function attemptDeckDelete(deckIds) {
 // 3) Update deck in database
 async function editDeckDetails () {
   
-  var [deckId, deckName, deckDescription] = await retrieveDeckId();
+  let message = "You've chosen to edit a deck's details. Which deck would you like to edit?"
+  var [deckId, deckName, deckDescription] = await retrieveDeckId(message);
 
   console.log(deckName, deckDescription)
 

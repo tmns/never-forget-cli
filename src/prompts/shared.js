@@ -1,4 +1,4 @@
-'use strict;'
+'use strict'
 
 import { registerPrompt, prompt } from 'inquirer';
 import fuzzy from 'fuzzy';
@@ -33,14 +33,12 @@ function decksToChoices(deck) {
 
 // Helper function to prompt the user for the deck they wish to access
 // And then retrieve the deck ID from their response
-async function retrieveDeckId(browseFlag) {
+async function retrieveDeckId(message) {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
 
   // turn our mongodb object of decks into an array of choices for inquirer
   var choices = decks.map(decksToChoices);
-
-  let message = browseFlag ? "Choose a deck to browse its cards."  : "You've chosen to edit a deck. Which deck would you like to edit?"; 
 
   // have the user choose which deck to add the card to
   var deckAnswer = await prompt([
