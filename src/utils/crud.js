@@ -1,7 +1,7 @@
 function getOne(model) {
-  return async function get(name) {
+  return async function get(target) {
     var doc = await model
-      .findOne({ name })
+      .findOne(target)
       .lean()
       .exec();
 
@@ -41,7 +41,7 @@ function createOne(model) {
 function updateOne(model) {
   return async function update(id, details) {
     var updatedDoc = await model
-      .findByIdAndUpdate({ id }, details, { new: true })
+      .findByIdAndUpdate(id, details, { new: true })
       .lean()
       .exec();
 

@@ -9,7 +9,8 @@ import cardCtrlrs from '../resources/card/card.controller';
 import { 
   isCreatingAnother,
   retrieveDeckId, 
-  asyncForEach 
+  asyncForEach,
+  fuzzySearch 
 } from './shared';
 
 // Walks a user through adding a card to a deck
@@ -22,7 +23,7 @@ async function addCard(_, deckId) {
   // of card adding, we must retrieve the deckID manually
   if (!deckId) {
     // retrieve deck ID
-    var deckId = await retrieveDeckId();
+    var [deckId, deckName] = await retrieveDeckId();
     console.log(
       'Now you get to create your card! Fill in the following details.'
     );
@@ -92,7 +93,7 @@ async function addCard(_, deckId) {
 
     // does user want to create another card now?
     if (await isCreatingAnother('card')) {
-      console.log('Adding another card...');
+      console.log(`Adding another card to ${deckName}...`);
       await addCard(_, deckId);
     }
 
@@ -106,7 +107,7 @@ async function addCard(_, deckId) {
 // 4) Delete chosen card(s)
 async function deleteCards() {
   // retrieve deck ID
-  var deckId = await retrieveDeckId();
+  var [deckId] = await retrieveDeckId();
 
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   
@@ -181,4 +182,100 @@ async function attemptCardDelete(cardPrompts, cards) {
   })
 }
 
-export { addCard, deleteCards };
+// Walks user through editing a card's details
+// 1) Prompt user with list of decks to choose from
+// 2) Prompt user with list of associated cards to choose from
+// 3) Prompt user with card details to change
+// 4) Update card details in database
+async function editCardDetails () {
+  // retrieve deck ID
+  var [deckId] = await retrieveDeckId();
+  // present cards associated with deck ID
+  var cards = await cardCtrlrs.getMany({ deck: deckId });
+  
+  var choices = cards.map(function cardsToChoices(card) {
+    return `${card.prompt} --> ${card.target}`;
+  })
+
+  // present user with associated cards to choose from
+  var cardAnswer = await prompt([
+    {
+      type: 'autocomplete',
+      name: 'card',
+      message: "You've chosen to edit a card. Which card would you like to edit?",
+      pageSize: 10,
+      source: function(answersSoFar, input) {
+        return fuzzySearch(answersSoFar, input, choices);
+      }
+    }
+  ])
+
+  // parse out card prompt and use it to retrieve card details from database
+  var cardPrompt = cardAnswer.card.split(' -->')[0];
+  var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
+
+  // present user with details to edit
+  var cardAnswers = await prompt([
+    {
+      type: 'input',
+      name: 'prompt',
+      message: 'Card prompt',
+      default: cardDetails.prompt,
+      validate: function(value) {
+        var pass = value.trim().match(/^.+/);
+        if (pass) {
+          return true;
+        }
+        return 'Sorry, you must enter a prompt for the card.';
+      }
+    },
+    {
+      type: 'input',
+      name: 'promptExample',
+      message: 'Prompt example (optional)',
+      default: cardDetails['promptExample'] ? cardDetails.promptExample : ''
+    },
+    {
+      type: 'input',
+      name: 'target',
+      message: 'Card target',
+      default: cardDetails.target,
+      validate: function(value) {
+        var pass = value.trim().match(/^.+/);
+        if (pass) {
+          return true;
+        }
+        return 'Sorry, you must enter a target for the card.';
+      }
+    },
+    {
+      type: 'input',
+      name: 'targetExample',
+      default: cardDetails['targetExample'] ? cardDetails.targetExample : ''
+    }
+  ]);
+
+  // create our object we will use to update the card in the database
+  let newCardDetails = {
+    prompt: cardAnswers.prompt,
+    target: cardAnswers.target
+  }
+  if (cardAnswers.promptExample != '') {
+    newCardDetails['promptExample'] = cardAnswers.promptExample;
+  }
+  if (cardAnswers.targetExample != '') {
+    newCardDetails['targetExample'] = cardAnswers.targetExample;
+  }
+
+  // attempt to update card in database
+  try {
+    await cardCtrlrs.updateOne(cardDetails._id, newCardDetails);
+    console.log('Card successfully updated!')
+  } catch (err) {
+    console.log(`Error encountered while updating card: ${err}.\nExiting.`);
+  }
+
+  process.exit();
+}
+
+export { addCard, deleteCards, editCardDetails };

@@ -5,8 +5,18 @@
 import program from 'commander';
 
 import configureDb from './prompts/db';
-import { createDeck, deleteDecks } from './prompts/deck';
-import { addCard, deleteCards } from './prompts/card';
+
+import { 
+  createDeck, 
+  deleteDecks, 
+  editDeckDetails
+} from './prompts/deck';
+
+import { 
+  addCard, 
+  deleteCards,
+  editCardDetails
+} from './prompts/card';
 
 import { connectAppToDB } from './utils/db';
 
@@ -43,6 +53,18 @@ program
   .alias('dd')
   .description('delete one or more decks')
   .action(deleteDecks);
+
+program
+  .command('editdeck')
+  .alias('ed')
+  .description('edit deck details (name / description)')
+  .action(editDeckDetails);
+
+program
+  .command('editcard')
+  .alias('ec')
+  .description('edit card details (prompt, target, etc.)')
+  .action(editCardDetails);
 
 start();
 

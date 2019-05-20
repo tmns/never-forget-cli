@@ -10,7 +10,9 @@ import cardCtrlrs from '../resources/card/card.controller';
 import { 
   isCreatingAnother, 
   decksToChoices, 
-  asyncForEach 
+  asyncForEach,
+  retrieveDeckId,
+  fuzzySearch
 } from './shared';
 
 // Walks the user through creating a deck of flash cards
@@ -34,7 +36,14 @@ async function createDeck() {
     {
       type: 'input',
       name: 'deckDescription',
-      message: 'Provide a description for your new deck (optional)'
+      message: 'Provide a description for your new deck (optional)',
+      validate: function(value) {
+        var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
+        if (pass) {
+          return true;
+        }
+        return 'Sorry,  the ":" character is not allowed.';
+      }
     }
   ]);
 
@@ -84,17 +93,7 @@ async function deleteDecks() {
       highlight: true,
       searchable: true,
       source: function(answersSoFar, input) {
-        input = input || '';
-
-        return new Promise(function(resolve) {
-          var fuzzyResult = fuzzy.filter(input, choices);
-
-          var data = fuzzyResult.map(function(element) {
-            return element.original;
-          });
-
-          resolve(data);
-        })
+        return fuzzySearch(answersSoFar, input, choices);
       }
     }
   ]);
@@ -155,4 +154,60 @@ async function attemptDeckDelete(deckIds) {
   })
 }
 
-export { createDeck, deleteDecks };
+// Walks user through editing a deck (ie changing its name or description)
+// 1) Prompt user with list of decks to choose from
+// 2) Prompt user with name and description inputs
+// 3) Update deck in database
+async function editDeckDetails () {
+  
+  var [deckId, deckName, deckDescription] = await retrieveDeckId();
+
+  console.log(deckName, deckDescription)
+
+  console.log(`You've chosen to edit the details of ${deckName}...`)
+
+  var answers = await prompt([
+    {
+      type: 'input',
+      name: 'deckName',
+      message: 'Deck name',
+      default: deckName,
+      validate: function(value) {
+        var pass = value.trim().match(/^(?!.*:.*)^.+/); // due to how we parse decks during card adding, we can't allow ':'
+        if (pass) {
+          return true;
+        }
+        return 'Sorry, you must give the deck a name (and the ":" character is not allowed).';
+      }
+    },
+    {
+      type: 'input',
+      name: 'deckDescription',
+      message: 'Deck description (optional)',
+      default: deckDescription,
+      validate: function(value) {
+        var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
+        if (pass) {
+          return true;
+        }
+        return 'Sorry,  the ":" character is not allowed.';
+      }
+    }
+  ]);
+
+  let details = { name: answers.deckName };
+  if (answers.deckDescription != '') {
+    details['description'] = answers.deckDescription;
+  }
+
+  try {
+    await deckCtrlrs.updateOne(deckId, details);
+    console.log(`Deck ${deckName} successfully updated.`);
+  } catch (err) {
+    console.log(`Error encountered while updating deck: ${err}.\nExiting`)
+  }
+
+  process.exit();
+}
+
+export { createDeck, deleteDecks, editDeckDetails };

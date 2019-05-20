@@ -49,29 +49,23 @@ async function retrieveDeckId() {
         "You've chosen to edit a deck. Which deck would you like to edit?",
       pageSize: 10,
       source: function(answersSoFar, input) {
-        input = input || '';
-
-        return new Promise(function(resolve) {
-          var fuzzyResult = fuzzy.filter(input, choices);
-
-          var data = fuzzyResult.map(function(element) {
-            return element.original;
-          });
-
-          resolve(data);
-        })
-      }  
+        return fuzzySearch(answersSoFar, input, choices);
+      }
     }
   ]);
 
-  // parse out the deck name...
+  // parse out the deck name and description...
   let deckName = deckAnswer.deck;
+  let deckDescription = '';
   if (deckName.includes(':')) {
-    deckName = deckName.split(':')[0];
+    deckName = deckAnswer.deck.split(':')[0];
+    deckDescription = deckAnswer.deck.split(':')[1];
   }
 
   // ...and return the deck ID to be used for the create query
-  return decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
+  let deckId = decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
+
+  return [deckId, deckName, deckDescription];
 }
 
 // async version of forEAch
@@ -81,9 +75,24 @@ async function asyncForEach(array, callback) {
   }
 }
 
+function fuzzySearch(answersSoFar, input, choices) {
+  input = input || '';
+
+  return new Promise(function(resolve) {
+    var fuzzyResult = fuzzy.filter(input, choices);
+
+    var data = fuzzyResult.map(function(element) {
+      return element.original;
+    });
+
+    resolve(data);
+  })
+}
+
 export { 
   isCreatingAnother, 
   decksToChoices, 
   retrieveDeckId, 
-  asyncForEach 
+  asyncForEach,
+  fuzzySearch
 };

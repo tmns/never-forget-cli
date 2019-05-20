@@ -51,7 +51,8 @@ async function attemptConnection(url) {
   try {
     await mongoose.connect(url, {
       useNewUrlParser: true,
-      useCreateIndex: true
+      useCreateIndex: true,
+      useFindAndModify: false
     });
   } catch (err) {
     throw new Error('Could not connect to database');
