@@ -117,6 +117,7 @@ async function testAndSaveConnection(url) {
 // Walks the user through creating a deck of flash cards
 // 1) Ask user for deck name and description
 // 2) Create deck in database
+// 3) Ask user if they want to create another deck immediately
 async function createDeck() {
   var answers = await prompt([
     {
@@ -152,9 +153,120 @@ async function createDeck() {
     );
   } catch (err) {
     console.log(`Error encountered while creating deck: ${err}.\nExiting.`);
+    process.exit();
   }
 
-  process.exit();
+  // does user want to create another deck now?
+  if (await isCreatingAnother('deck')) {
+    await createDeck();
+  }
+
+  process.exit(); 
+}
+
+async function isCreatingAnother(item) {
+  let answer = await prompt([
+    {
+      type: 'confirm',
+      name: 'addAnother',
+      message: `Would you like to create another ${item}?`,
+      default: true
+    }
+  ])
+
+  return answer.addAnother;
+}
+
+// Walks the user through deleting one or more decks
+// 1) Preseent user with list of decks to choose from
+// 2) After deck choice(s), prompt user with confirmation
+// 3) Delete associated cards from database
+// 4) Delete decks from database
+async function deleteDecks() {
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+
+  // turn our mongodb object of decks into an array of choices for inquirer
+  var choices = decks.map(decksToChoices);
+
+  var selectedDecks = await prompt([
+    {
+      type: 'checkbox-plus',
+      name: 'decks',
+      message: "You've chosen to delete one or more decks. Which deck(s) do you wish to delete? (you can filter by typing)",
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: function(answersSoFar, input) {
+        input = input || '';
+
+        return new Promise(function(resolve) {
+          var fuzzyResult = fuzzy.filter(input, choices);
+
+          var data = fuzzyResult.map(function(element) {
+            return element.original;
+          });
+
+          resolve(data);
+        })
+      }
+    }
+  ]);
+
+  // parse deck names
+  let deckNames = selectedDecks.decks.map(function parseDeckName(deck) {
+    if (deck.includes(':')) {
+      return deck.split(':')[0];
+    }
+    return deck;
+  })
+
+  // prompt the user for confirmation
+  var isSure = await prompt([
+    {
+      type: 'confirm',
+      name: 'deleteDecks',
+      message: `You've chosen to delete the following decks: ${deckNames.join(', ')}. This will permenantly remove both the decks and their containing cards. Are you sure this is what you want to do?`,
+      default: false
+    }
+  ]);
+
+  if (isSure.deleteDEcks) {
+    // create list of deck IDs for query
+    let deckIds = [];
+    deckNames.forEach(function addToDeckIds(deckName) {
+      deckIds.push(decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0]);
+    })
+  
+    // atempt delete query
+    try {
+      await attemptDeckDelete(deckIds);
+      console.log('Deck(s) successfully deleted.');
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+ process.exit();    
+}
+
+// helper function to delete the selected decks (and their associated cards)
+async function attemptDeckDelete(deckIds) {
+  // loop over each deck ID
+  await asyncForEach(deckIds, async function deleteDeck(deckId) {
+    // ... remove cards
+    try {
+      await cardCtrlrs.removeMany({deck: deckId});
+    } catch(err) {
+      throw new Error(`Error encountered while deleting deck's cards: ${err}.\nExiting.`);
+    }
+    // ... remove decks
+    try {
+      await deckCtrlrs.removeOne(deckId);
+    } catch(err) {
+      throw new Error(`Error encountered while deleting deck(s): ${err}.\nExiting.`);
+    }
+  })
 }
 
 /******************************
@@ -165,13 +277,17 @@ async function createDeck() {
 // 1) Present user with list of decks to choose from
 // 2) After deck choice, present user with card creation prompts
 // 3) Create card in database
-async function addCard() {
-  // retrieve deck ID
-  var deckId = await retrieveDeckId();
-
-  console.log(
-    'Now you get to create your card! Fill in the following details.'
-  );
+// 4) Ask if user wants to create another card immediately
+async function addCard(_, deckId) {
+  // if this is the first card being added for a particular session
+  // of card adding, we must retrieve the deckID manually
+  if (!deckId) {
+    // retrieve deck ID
+    var deckId = await retrieveDeckId();
+    console.log(
+      'Now you get to create your card! Fill in the following details.'
+    );
+  }
 
   // now lets get the details for the new card
   var cardAnswers = await prompt([
@@ -232,7 +348,14 @@ async function addCard() {
     console.log(`Card successfully added. Now you can (s)tudy it!`);
   } catch (err) {
     console.log(`Error encountered while creating card: ${err}.\nExiting.`);
+    process.exit();
   }
+
+    // does user want to create another card now?
+    if (await isCreatingAnother('card')) {
+      console.log('Adding another card...');
+      await addCard(_, deckId);
+    }
 
   process.exit();
 }
@@ -276,9 +399,9 @@ function decksToChoices(deck) {
 }
 
 // Walks the user through deleting one or more cards
-// 1) Presents user with list of decks to choose from
-// 2) After deck is chosen, presents user with list of (filterable) cards
-// 3) Removes chosen card(s)
+// 1) Present user with list of decks to choose from
+// 2) After deck is chosen, present user with list of (filterable) cards
+// 3) Remove chosen card(s)
 async function deleteCards() {
   // retrieve deck ID
   var deckId = await retrieveDeckId();
@@ -320,7 +443,7 @@ async function deleteCards() {
   })
 
   try {
-    await removeCards(cardPrompts, cards);
+    await attemptCardDelete(cardPrompts, cards);
     console.log('Card(s) successfully deleted.');
   } catch (err) {
     console.log(err);
@@ -336,20 +459,19 @@ async function asyncForEach(array, callback) {
   }
 }
 
-// helper function to remove the selected cards from the deck
-async function removeCards(cardPrompts, cards) {
+// helper function to delete the selected cards from the deck
+async function attemptCardDelete(cardPrompts, cards) {
   // loop over each card prompt...
-  await asyncForEach(cardPrompts, async function removeCardById(cardPrompt) {
+  await asyncForEach(cardPrompts, async function deleteCardById(cardPrompt) {
     // ...determine its mongodb ID...
     let cardId =  cards.filter(card => card.prompt == cardPrompt).map(card => card._id)[0];
     // ...and call the remove query
     try {
       await cardCtrlrs.removeOne(cardId);
     } catch(err) {
-      throw new Error(`Error encountered while deleting card: ${err}.\nExiting.`);
+      throw new Error(`Error encountered while deleting card(s): ${err}.\nExiting.`);
     }
-
   })
 }
 
-export { configureDb, createDeck, addCard, deleteCards };
+export { configureDb, createDeck, addCard, deleteCards, deleteDecks };

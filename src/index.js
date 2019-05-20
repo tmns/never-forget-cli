@@ -8,7 +8,8 @@ import {
   configureDb,
   createDeck,
   addCard,
-  deleteCards
+  deleteCards,
+  deleteDecks
 } from './utils/prompts';
 
 import { connectAppToDB } from './utils/db';
@@ -40,6 +41,12 @@ program
   .alias('dc')
   .description('delete one or more cards')
   .action(deleteCards);
+
+program
+  .command('deldecks')
+  .alias('dd')
+  .description('delete one or more decks')
+  .action(deleteDecks);
 
 start();
 

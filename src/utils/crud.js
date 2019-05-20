@@ -58,14 +58,27 @@ function removeOne(model) {
     var removedDoc = await model.findByIdAndDelete(id);
     
     if (!removedDoc) {
-      throw new Error('Nothing removed');
+      throw new Error('Nothing deleted');
     }
 
     return removedDoc;
   };
 }
 
+function removeMany(model) {
+  return async function(details) {
+    var removedDocs = await model.deleteMany(details);
+
+    if (!removedDocs) {
+      throw new Error('Nothing deleted');
+    }
+
+    return removedDocs;
+  }
+}
+
 export const crudControllers = model => ({
+  removeMany: removeMany(model),
   removeOne: removeOne(model),
   updateOne: updateOne(model),
   getMany: getMany(model),
