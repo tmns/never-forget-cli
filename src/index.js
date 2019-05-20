@@ -4,13 +4,9 @@
 
 import program from 'commander';
 
-import { 
-  configureDb,
-  createDeck,
-  addCard,
-  deleteCards,
-  deleteDecks
-} from './utils/prompts';
+import configureDb from './prompts/db';
+import { createDeck, deleteDecks } from './prompts/deck';
+import { addCard, deleteCards } from './prompts/card';
 
 import { connectAppToDB } from './utils/db';
 
