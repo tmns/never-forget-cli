@@ -1,6 +1,9 @@
 'use strict;'
 
-import { prompt } from 'inquirer';
+import { registerPrompt, prompt } from 'inquirer';
+import fuzzy from 'fuzzy';
+
+registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
 import deckCtrlrs from '../resources/deck/deck.controller';
 
@@ -40,11 +43,24 @@ async function retrieveDeckId() {
   // have the user choose which deck to add the card to
   var deckAnswer = await prompt([
     {
-      type: 'list',
+      type: 'autocomplete',
       name: 'deck',
       message:
         "You've chosen to edit a deck. Which deck would you like to edit?",
-      choices: choices
+      pageSize: 10,
+      source: function(answersSoFar, input) {
+        input = input || '';
+
+        return new Promise(function(resolve) {
+          var fuzzyResult = fuzzy.filter(input, choices);
+
+          var data = fuzzyResult.map(function(element) {
+            return element.original;
+          });
+
+          resolve(data);
+        })
+      }  
     }
   ]);
 
