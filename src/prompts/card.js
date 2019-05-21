@@ -90,8 +90,7 @@ async function addCard(_, deckId) {
   ]);
 
   // create the card details object we'll use for the query
-  let prepareCardForQueryDb = prepareCardForQuery(deckId);
-  let cardForQuery = prepareCardForQueryDb(cardAnswers);
+  let cardForQuery = prepareCardForQuery(deckId)(cardAnswers);
 
   try {
     await cardCtrlrs.createOne(cardForQuery);
@@ -275,9 +274,7 @@ async function editCardDetails () {
   ]);
 
   // create our object we will use to update the card in the database
-
-  let prepareCardForQueryDb = prepareCardForQuery(null);
-  let newCardDetails = prepareCardForQueryDb(cardAnswers);
+  let newCardDetails = prepareCardForQuery(null)(cardAnswers);
 
   // attempt to update card in database
   try {
@@ -463,8 +460,7 @@ async function importCards (_, dirname) {
   }
 
   // prepare cards for create db queries
-  let prepareCardForQueryDb = prepareCardForQuery(deckId);
-  let cardsForQuery = importedCards.map(prepareCardForQueryDb);
+  let cardsForQuery = importedCards.map(prepareCardForQuery(deckId));
 
   // attempt create query against db
   try {
