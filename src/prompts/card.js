@@ -18,6 +18,23 @@ import {
   fuzzySearch 
 } from './shared';
 
+import {
+  ADD_CARDS_WHICH_DECK,
+  DEL_CARDS_WHICH_DECK,
+  DEL_CARDS_WHICH_CARD,
+  EDIT_CARD_WHICH_DECK,
+  EDIT_CARD_WHICH_CARD,
+  BROWSE_CARDS_WHICH_DECK,
+  BROWSE_CARDS_WHICH_CARD,
+  EXPORT_CARDS_WHICH_DECK,
+  IMPORT_CARDS_WHICH_DECK
+} from '../utils/promptMessages';
+
+import {
+  SINGLE_CHOICE,
+  MULTIPLE_CHOICE
+} from '../utils/promptTypes';
+
 var writeFile = promisify(fs.writeFile);
 var readFile = promisify(fs.readFile);
 
@@ -33,8 +50,8 @@ async function addCard(_, deckId) {
     // retrieve all decks from database
     var decks = await deckCtrlrs.getMany({});
     // prompt user with deck choices and get answer
-    let message = "You've chosen to add one or more cards. Which deck would you like to add the card(s) to?";
-    let deckType = 'autocomplete';
+    let message = ADD_CARDS_WHICH_DECK;
+    let deckType = SINGLE_CHOICE;
     let selectedDeck = await getSelectedDecks(decks, message, deckType);
 
     // check if user wants to exit
@@ -96,7 +113,7 @@ async function addCard(_, deckId) {
     await cardCtrlrs.createOne(cardForQuery);
     console.log(`Card successfully added. Now you can (s)tudy it!`);
   } catch (err) {
-    console.log(`Error encountered while creating card: ${err}.\nExiting.`);
+    console.log(`Error encountered while creating card: ${err}.\nExiting...`);
     process.exit();
   }
 
@@ -118,8 +135,8 @@ async function deleteCards() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
-  let deckMessage = "You've chosen to delete one or more cards. From which deck would you like to delete the card(s)?";
-  let deckType = 'autocomplete';
+  let deckMessage = DEL_CARDS_WHICH_DECK;
+  let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
   
   // check if user wants to exit
@@ -134,8 +151,8 @@ async function deleteCards() {
   // retrieve all associated cards from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   // prompt user to select card
-  let cardMessage = 'Choose the card(s) you wish to delete (you can filter cards by typing)';
-  let cardType = 'checkbox-plus';
+  let cardMessage = DEL_CARDS_WHICH_CARD;
+  let cardType = MULTIPLE_CHOICE;
   var selectedCards = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
@@ -146,6 +163,12 @@ async function deleteCards() {
     console.log('Exiting...');
     process.exit();
   }
+  // check if user didn't choose any cards
+  if (selectedCards.cards.length == 0) {
+    console.log(`You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`);
+    process.exit();
+  }
+
 
   // confirm user wants to delete the selected card(s)
   var isSure = await prompt([
@@ -170,6 +193,8 @@ async function deleteCards() {
     } catch (err) {
       console.log(err);
     }
+  } else {
+    console.log('Card deletion cancelled.\nExiting...');
   }
 
   process.exit();
@@ -185,7 +210,7 @@ async function attemptCardsDelete(cardPrompts, cards) {
     try {
       await cardCtrlrs.removeOne(cardId);
     } catch(err) {
-      throw new Error(`Error encountered while deleting card(s): ${err}.\nExiting.`);
+      throw new Error(`Error encountered while deleting card(s): ${err}.\nExiting...`);
     }
   })
 }
@@ -199,8 +224,8 @@ async function editCardDetails () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
-  let deckMessage = "You've chosen to edit a card's details. In which deck is the card located?";
-  let deckType = 'autocomplete';
+  let deckMessage = EDIT_CARD_WHICH_DECK;
+  let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
@@ -215,8 +240,8 @@ async function editCardDetails () {
   // retrieve cards associated with deck ID from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   // prompt user to select card
-  let cardMessage = "You've chosen to edit a card. Which card would you like to edit?";
-  let cardType = 'autocomplete';
+  let cardMessage = EDIT_CARD_WHICH_CARD;
+  let cardType = SINGLE_CHOICE;
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
@@ -281,7 +306,7 @@ async function editCardDetails () {
     await cardCtrlrs.updateOne(cardDetails._id, newCardDetails);
     console.log('Card successfully updated!')
   } catch (err) {
-    console.log(`Error encountered while updating card: ${err}.\nExiting.`);
+    console.log(`Error encountered while updating card: ${err}.\nExiting...`);
   }
 
   process.exit();
@@ -299,8 +324,8 @@ async function browseCards(_, deckId) {
     // retrieve all decks from database
     var decks = await deckCtrlrs.getMany({});
     // prompt user with deck choices and get answer
-    let deckMessage = "Choose a deck to browse its cards.";
-    let deckType = 'autocomplete';
+    let deckMessage = BROWSE_CARDS_WHICH_DECK;
+    let deckType = SINGLE_CHOICE;
     let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
     // check if user wants to exit
@@ -316,8 +341,8 @@ async function browseCards(_, deckId) {
   // retrieve all associated cards from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
   // prompt user to select card
-  let cardMessage = 'Choose a card to view its details.';
-  let cardType = 'autocomplete';
+  let cardMessage = BROWSE_CARDS_WHICH_CARD;
+  let cardType = SINGLE_CHOICE;
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
@@ -368,8 +393,8 @@ async function exportCards (_, dirname) {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
-  let deckMessage = "You've chosen to export a deck of cards. Which deck would you like to export?";
-  let deckType = 'autocomplete';
+  let deckMessage = EXPORT_CARDS_WHICH_DECK;
+  let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
   
   // check if user wants to exit
@@ -410,7 +435,7 @@ async function exportCards (_, dirname) {
     await writeFile(exportPath, JSON.stringify(formattedCards));
     console.log(`Cards from deck "${deckName}" successfully exported to ${exportPath}`);
   } catch (err) {
-    console.log(`Error exporting cards from deck: ${err}.\nExiting.`);
+    console.log(`Error exporting cards from deck: ${err}.\nExiting...`);
   }
 
   process.exit();
@@ -425,8 +450,8 @@ async function importCards (_, dirname) {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
-  let deckMessage = "You've chosen to import one or more cards. To which deck would you like to import the card(s)?";
-  let deckType = 'autocomplete';
+  let deckMessage = IMPORT_CARDS_WHICH_DECK;
+  let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
   
   // check if user wants to exit
@@ -455,7 +480,7 @@ async function importCards (_, dirname) {
   try {
     var importedCards = JSON.parse(await readFile(importPath));
   } catch (err) {
-    console.log(`Error importing deck: ${err}.\nExiting.`);
+    console.log(`Error importing deck: ${err}.\nExiting...`);
     process.exit();
   }
 
@@ -479,7 +504,7 @@ async function attemptCardsImport(cards) {
     try {
       await cardCtrlrs.createOne(card);
     } catch(err) {
-      throw new Error(`Error encountered while adding card(s): ${err}.\nExiting.`);
+      throw new Error(`Error encountered while adding card(s): ${err}.\nExiting...`);
     }
   })
 }

@@ -14,6 +14,16 @@ import {
   getDeckProperties
 } from './shared';
 
+import { 
+  DEL_DECK_WHICH_DECK,
+  EDIT_DECK_WHICH_DECK 
+} from '../utils/promptMessages';
+
+import {
+  SINGLE_CHOICE,
+  MULTIPLE_CHOICE
+} from '../utils/promptTypes';
+
 // Walks the user through creating a deck of flash cards
 // 1) Ask user for deck name and description
 // 2) Create deck in database
@@ -59,7 +69,7 @@ async function createDeck() {
       } successfully created. Now you can (i)mport or (a)dd some cards to it!`
     );
   } catch (err) {
-    console.log(`Error encountered while creating deck: ${err}.\nExiting.`);
+    console.log(`Error encountered while creating deck: ${err}.\nExiting...`);
     process.exit();
   }
 
@@ -80,15 +90,21 @@ async function deleteDecks() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
 
-  let deckMessage = "You've chosen to delete one or more decks. Which deck(s) do you wish to delete? (you can filter by typing)";
-  let type = 'checkbox-plus';
+  let deckMessage = DEL_DECK_WHICH_DECK;
+  let type = MULTIPLE_CHOICE;
   let selectedDecks = await getSelectedDecks(decks, deckMessage, type);
 
-    // check if user wants to exit
-    if (selectedDecks.decks.includes('** exit **')) {
-      console.log('Exiting...');
-      process.exit();
-    }
+  // check if user wants to exit
+  if (selectedDecks.decks.includes('** exit **')) {
+    console.log('Exiting...');
+    process.exit();
+  }
+
+  // check if user didn't choose any decks
+  if (selectedDecks.decks.length == 0) {
+    console.log(`You didn't choose a deck. If this was a mistake, next time make sure you use the <space> key to select a deck.\nExiting...`);
+    process.exit();
+  }
 
   // parse deck names
   let deckNames = selectedDecks.decks.map(function parseDeckName(deck) {
@@ -122,6 +138,8 @@ async function deleteDecks() {
     } catch (err) {
       console.log(err);
     }
+  } else {
+    console.log('Deck deletion cancelled.\nExiting...')
   }
 
  process.exit();    
@@ -135,13 +153,13 @@ async function attemptDeckDelete(deckIds) {
     try {
       await cardCtrlrs.removeMany({deck: deckId});
     } catch(err) {
-      throw new Error(`Error encountered while deleting deck's cards: ${err}.\nExiting.`);
+      throw new Error(`Error encountered while deleting deck's cards: ${err}.\nExiting...`);
     }
     // ... remove decks
     try {
       await deckCtrlrs.removeOne(deckId);
     } catch(err) {
-      throw new Error(`Error encountered while deleting deck(s): ${err}.\nExiting.`);
+      throw new Error(`Error encountered while deleting deck(s): ${err}.\nExiting...`);
     }
   })
 }
@@ -154,8 +172,8 @@ async function editDeckDetails () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
-  let message = "You've chosen to edit a deck's details. Which deck would you like to edit?";
-  let type = "autocomplete";
+  let message = EDIT_DECK_WHICH_DECK;
+  let type = SINGLE_CHOICE;
   var selectedDeck = await getSelectedDecks(decks, message, type);
 
   // check if user wants to exit
