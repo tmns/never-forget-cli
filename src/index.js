@@ -17,7 +17,8 @@ import {
   deleteCards,
   editCardDetails,
   browseCards,
-  exportCards
+  exportCards,
+  importCards
 } from './prompts/card';
 
 import { connectAppToDB } from './utils/db';
@@ -39,18 +40,6 @@ program
   .action(createDeck);
 
 program
-  .command('addcard')
-  .alias('a')
-  .description('add a card')
-  .action(addCard);
-
-program
-  .command('delcards')
-  .alias('dc')
-  .description('delete one or more cards')
-  .action(deleteCards);
-
-program
   .command('deldecks')
   .alias('dd')
   .description('delete one or more decks')
@@ -61,6 +50,18 @@ program
   .alias('ed')
   .description('edit deck details (name / description)')
   .action(editDeckDetails);
+
+program
+  .command('addcard')
+  .alias('a')
+  .description('add a card')
+  .action(addCard);
+
+program
+  .command('delcards')
+  .alias('dc')
+  .description('delete one or more cards')
+  .action(deleteCards);
 
 program
   .command('editcard')
@@ -75,10 +76,20 @@ program
   .action(browseCards);
 
 program
+  .command('import')
+  .alias('i')
+  .description('import one or more cards into a deck')
+  .action(async function importWrapper(commanderData) {
+    return await importCards(commanderData, __dirname);
+  });
+
+program
   .command('export')
   .alias('ex')
   .description('export a deck of cards')
-  .action(exportCards);
+  .action(async function exportWrapper(commanderData) {
+    return await exportCards(commanderData, __dirname);
+  });
 
 start();
 

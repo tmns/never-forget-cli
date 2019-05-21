@@ -19,6 +19,7 @@ import {
 } from './shared';
 
 var writeFile = promisify(fs.writeFile);
+var readFile = promisify(fs.readFile);
 
 // Walks a user through adding a card to a deck
 // 1) Present user with list of decks to choose from
@@ -89,22 +90,11 @@ async function addCard(_, deckId) {
   ]);
 
   // create the card details object we'll use for the query
-  let cardDetails = {
-    deck: deckId,
-    prompt: cardAnswers.prompt,
-    target: cardAnswers.target
-  };
-
-  if (cardAnswers.promptExample != '') {
-    cardDetails['promptExample'] = cardAnswers.promptExample;
-  }
-
-  if (cardAnswers.targetExample != '') {
-    cardDetails['targetExample'] = cardAnswers.targetExample;
-  }
+  let prepareCardForQueryDb = prepareCardForQuery(deckId);
+  let cardForQuery = prepareCardForQueryDb(cardAnswers);
 
   try {
-    await cardCtrlrs.createOne(cardDetails);
+    await cardCtrlrs.createOne(cardForQuery);
     console.log(`Card successfully added. Now you can (s)tudy it!`);
   } catch (err) {
     console.log(`Error encountered while creating card: ${err}.\nExiting.`);
@@ -176,7 +166,7 @@ async function deleteCards() {
     })
   
     try {
-      await attemptCardDelete(cardPrompts, cards);
+      await attemptCardsDelete(cardPrompts, cards);
       console.log('Card(s) successfully deleted.');
     } catch (err) {
       console.log(err);
@@ -187,7 +177,7 @@ async function deleteCards() {
 }
 
 // helper function to delete the selected cards from the deck
-async function attemptCardDelete(cardPrompts, cards) {
+async function attemptCardsDelete(cardPrompts, cards) {
   // loop over each card prompt...
   await asyncForEach(cardPrompts, async function deleteCardById(cardPrompt) {
     // ...determine its mongodb ID...
@@ -285,16 +275,9 @@ async function editCardDetails () {
   ]);
 
   // create our object we will use to update the card in the database
-  let newCardDetails = {
-    prompt: cardAnswers.prompt,
-    target: cardAnswers.target
-  }
-  if (cardAnswers.promptExample != '') {
-    newCardDetails['promptExample'] = cardAnswers.promptExample;
-  }
-  if (cardAnswers.targetExample != '') {
-    newCardDetails['targetExample'] = cardAnswers.targetExample;
-  }
+
+  let prepareCardForQueryDb = prepareCardForQuery(null);
+  let newCardDetails = prepareCardForQueryDb(cardAnswers);
 
   // attempt to update card in database
   try {
@@ -381,10 +364,10 @@ async function browseCards(_, deckId) {
 
 // Walks user through exporting a deck of cards
 // 1) Present user with choice of decks
-// 2) Prompt user for path to export to (default is the file's current dir)
+// 2) Prompt user for path to export to (default is index.js's current dir)
 // 3) Retrieve cards associated with deck from db
 // 4) Attempt to write JSON.stringify'd cards to export path
-async function exportCards () {
+async function exportCards (_, dirname) {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
@@ -405,14 +388,14 @@ async function exportCards () {
   var answer = await prompt([
     {
       type: 'input',
-      name: 'location',
+      name: 'exportPath',
       message: 'Where do you wish to export the cards?',
-      default: __dirname
+      default: dirname
     }
   ]);
 
-  let exportPath = path.join(answer.location, `${deckName.split(' ').join('-')}-export.json`);
-  console.log(`Exporting ${deckName} to ${exportPath}`);
+  let exportPath = path.join(answer.exportPath, `${deckName.split(' ').join('-')}-export.json`);
+  console.log(`Exporting cards from deck "${deckName}" to ${exportPath}`);
 
   // query db for associated cards and format them 
   let cards = await cardCtrlrs.getMany({ deck: deckId });
@@ -428,16 +411,86 @@ async function exportCards () {
   // attempt to write JSON.stringify'd cards to export path
   try {
     await writeFile(exportPath, JSON.stringify(formattedCards));
-    console.log(`Deck ${deckName} successfully exported to ${exportPath}`);
+    console.log(`Cards from deck "${deckName}" successfully exported to ${exportPath}`);
   } catch (err) {
-    console.log(`Error exporting deck: ${err}.\nExiting.`);
+    console.log(`Error exporting cards from deck: ${err}.\nExiting.`);
   }
 
   process.exit();
 }
 
+// Walks user through importing a deck of cards
+// 1) Present user with choice of decks
+// 2) Prompt user for path to import from (default is index.js's current dir)
+// 3) Retrieve to read JSON.parse'd cards 
+// 4) Create a card in the database for each card
+async function importCards (_, dirname) {
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+  // prompt user with deck choices and get answer
+  let deckMessage = "You've chosen to import one or more cards. To which deck would you like to import the card(s)?";
+  let deckType = 'autocomplete';
+  let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
+  
+  // check if user wants to exit
+  if (selectedDeck.decks == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
+  
+  // get deck properties for future use
+  var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+
+  // determine import path
+  var answer = await prompt([
+    {
+      type: 'input',
+      name: 'importPath',
+      message: 'From which file would you like to import the card(s)?',
+      default: path.join(dirname, `${deckName.split(' ').join('-')}-export.json`)
+    }
+  ]);
+
+  let importPath = path.join(answer.importPath);
+  console.log(`Importing card(s) from ${importPath} to deck "${deckName}"...`);
+
+  // attempt read from provided path
+  try {
+    var importedCards = JSON.parse(await readFile(importPath));
+  } catch (err) {
+    console.log(`Error importing deck: ${err}.\nExiting.`);
+    process.exit();
+  }
+
+  // prepare cards for create db queries
+  let prepareCardForQueryDb = prepareCardForQuery(deckId);
+  let cardsForQuery = importedCards.map(prepareCardForQueryDb);
+
+  // attempt create query against db
+  try {
+    await attemptCardsImport(cardsForQuery);
+    console.log('Card(s) successfully imported.');
+  } catch (err) {
+    console.log(err);
+  }
+
+  process.exit();
+}
+
+// helper function to loop through cards and execute create queries against the db
+async function attemptCardsImport(cards) {
+  await asyncForEach(cards, async function createCard(card) {
+    try {
+      await cardCtrlrs.createOne(card);
+    } catch(err) {
+      throw new Error(`Error encountered while adding card(s): ${err}.\nExiting.`);
+    }
+  })
+}
+
 // *********** general helper functions *************
 
+// prompt user with list of available cards and returns selected card
 async function getSelectedCards(cards, message, type) {
   var choices = cards.map(function cardsToChoices(card) {
     return `${card.prompt} --> ${card.target}`;
@@ -460,11 +513,37 @@ async function getSelectedCards(cards, message, type) {
   ]);
 }
 
+// Takes a plain card object and prepares it for making a create query
+function prepareCardForQuery(deckId) {
+  return function prepare(cardObject) {
+    let cardForQuery = {
+      prompt: cardObject.prompt,
+      target: cardObject.target
+    };
+
+    if (deckId !== null) {
+      cardForQuery['deck'] = deckId;
+    }
+  
+    if (cardObject.promptExample != '') {
+      cardForQuery['promptExample'] = cardObject.promptExample;
+    }
+  
+    if (cardObject.targetExample != '') {
+      cardForQuery['targetExample'] = cardObject.targetExample;
+    }
+  
+    return cardForQuery;
+  
+  }
+}
+
 
 export { 
   addCard, 
   deleteCards, 
   editCardDetails, 
   browseCards,
-  exportCards
+  exportCards,
+  importCards
 };
