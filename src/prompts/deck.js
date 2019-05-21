@@ -1,18 +1,17 @@
 'use strict';
 
 import { registerPrompt, prompt } from 'inquirer';
-import fuzzy from 'fuzzy';
 
 registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
 import deckCtrlrs from '../resources/deck/deck.controller';
 import cardCtrlrs from '../resources/card/card.controller';
+
 import { 
-  isCreatingAnother, 
-  decksToChoices, 
+  isCreatingAnother,
   asyncForEach,
-  retrieveDeckId,
-  fuzzySearch
+  getSelectedDecks,
+  getDeckProperties
 } from './shared';
 
 // Walks the user through creating a deck of flash cards
@@ -81,22 +80,15 @@ async function deleteDecks() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
 
-  // turn our mongodb object of decks into an array of choices for inquirer
-  var choices = decks.map(decksToChoices);
+  let deckMessage = "You've chosen to delete one or more decks. Which deck(s) do you wish to delete? (you can filter by typing)";
+  let type = 'checkbox-plus';
+  let selectedDecks = await getSelectedDecks(decks, deckMessage, type);
 
-  var selectedDecks = await prompt([
-    {
-      type: 'checkbox-plus',
-      name: 'decks',
-      message: "You've chosen to delete one or more decks. Which deck(s) do you wish to delete? (you can filter by typing)",
-      pageSize: 10,
-      highlight: true,
-      searchable: true,
-      source: function(answersSoFar, input) {
-        return fuzzySearch(answersSoFar, input, choices);
-      }
+    // check if user wants to exit
+    if (selectedDecks.decks.includes('** exit **')) {
+      console.log('Exiting...');
+      process.exit();
     }
-  ]);
 
   // parse deck names
   let deckNames = selectedDecks.decks.map(function parseDeckName(deck) {
@@ -159,11 +151,21 @@ async function attemptDeckDelete(deckIds) {
 // 2) Prompt user with name and description inputs
 // 3) Update deck in database
 async function editDeckDetails () {
-  
-  let message = "You've chosen to edit a deck's details. Which deck would you like to edit?"
-  var [deckId, deckName, deckDescription] = await retrieveDeckId(message);
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+  // prompt user with deck choices and get answer
+  let message = "You've chosen to edit a deck's details. Which deck would you like to edit?";
+  let type = "autocomplete";
+  var selectedDeck = await getSelectedDecks(decks, message, type);
 
-  console.log(deckName, deckDescription)
+  // check if user wants to exit
+  if (selectedDeck.decks == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
+  
+  // get deck properties for future use  
+  var [deckId, deckName, deckDescription] = await getDeckProperties(decks, selectedDeck);
 
   console.log(`You've chosen to edit the details of ${deckName}...`)
 

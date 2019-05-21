@@ -8,9 +8,12 @@ import { registerPrompt, prompt } from 'inquirer';
 registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
 import cardCtrlrs from '../resources/card/card.controller';
+import deckCtrlrs from '../resources/deck/deck.controller';
+
 import { 
   isCreatingAnother,
-  retrieveDeckId, 
+  getDeckProperties,
+  getSelectedDecks, 
   asyncForEach,
   fuzzySearch 
 } from './shared';
@@ -26,9 +29,21 @@ async function addCard(_, deckId) {
   // if this is the first card being added for a particular session
   // of card adding, we must retrieve the deckID manually
   if (!deckId) {
-    // retrieve deck ID
+    // retrieve all decks from database
+    var decks = await deckCtrlrs.getMany({});
+    // prompt user with deck choices and get answer
     let message = "You've chosen to add one or more cards. Which deck would you like to add the card(s) to?";
-    var [deckId, deckName] = await retrieveDeckId(message);
+    let deckType = 'autocomplete';
+    let selectedDeck = await getSelectedDecks(decks, message, deckType);
+
+    // check if user wants to exit
+    if (selectedDeck.decks == '** exit **') {
+      console.log('Exiting...');
+      process.exit();
+    }
+
+    // get deck properties for future use
+    var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
     console.log(
       'Now you get to create your card! Fill in the following details.'
     );
@@ -111,29 +126,37 @@ async function addCard(_, deckId) {
 // 3) Prompt user for confirmation to delete
 // 4) Delete chosen card(s)
 async function deleteCards() {
-  // retrieve deck ID
-  let message = "You've chosen to delete one or more cards. From which deck would you like to delete the card(s)?"
-  var [deckId] = await retrieveDeckId(message);
-
-  var cards = await cardCtrlrs.getMany({ deck: deckId });
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+  // prompt user with deck choices and get answer
+  let deckMessage = "You've chosen to delete one or more cards. From which deck would you like to delete the card(s)?";
+  let deckType = 'autocomplete';
+  let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
   
-  var choices = cards.map(function cardsToChoices(card) {
-    return `${card.prompt} --> ${card.target}`;
-  })
+  // check if user wants to exit
+  if (selectedDeck.decks == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
+  
+  // get deck properties for future use
+  var [deckId] = await getDeckProperties(decks, selectedDeck);
 
-  var selectedCards = await prompt([
-    {
-      type: 'checkbox-plus',
-      name: 'cards',
-      message: 'Choose the card(s) you wish to delete (you can filter cards by typing)',
-      pageSize: 10,
-      highlight: true,
-      searchable: true,
-      source: function(answersSoFar, input) {
-        return fuzzySearch(answersSoFar, input, choices);
-      }
-    }
-  ]);
+  // retrieve all associated cards from database
+  var cards = await cardCtrlrs.getMany({ deck: deckId });
+  // prompt user to select card
+  let cardMessage = 'Choose the card(s) you wish to delete (you can filter cards by typing)';
+  let cardType = 'checkbox-plus';
+  var selectedCards = await getSelectedCards(cards, cardMessage, cardType);
+
+  // check if user wants to go back or exit
+  if (selectedCards.cards.includes('<-- go back to decks')) {
+    await deleteCards();
+  }
+  if (selectedCards.cards.includes('** exit **')) {
+    console.log('Exiting...');
+    process.exit();
+  }
 
   // confirm user wants to delete the selected card(s)
   var isSure = await prompt([
@@ -184,32 +207,40 @@ async function attemptCardDelete(cardPrompts, cards) {
 // 3) Prompt user with card details to change
 // 4) Update card details in database
 async function editCardDetails () {
-  // retrieve deck ID
-  let message = "You've chosen to edit a card's details. In which deck is the card located?"
-  var [deckId] = await retrieveDeckId(message);
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+  // prompt user with deck choices and get answer
+  let deckMessage = "You've chosen to edit a card's details. In which deck is the card located?";
+  let deckType = 'autocomplete';
+  let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
-  // present cards associated with deck ID
+  // check if user wants to exit
+  if (selectedDeck.decks == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
+
+  // get deck properties for future use
+  var [deckId] = await getDeckProperties(decks, selectedDeck)
+
+  // retrieve cards associated with deck ID from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
+  // prompt user to select card
+  let cardMessage = "You've chosen to edit a card. Which card would you like to edit?";
+  let cardType = 'autocomplete';
+  let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
+
+  // check if user wants to go back or exit
+  if (selectedCard.cards == '<-- go back to decks') {
+    await editCardDetails();
+  }
+  if (selectedCard.cards == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
   
-  var choices = cards.map(function cardsToChoices(card) {
-    return `${card.prompt} --> ${card.target}`;
-  })
-
-  // present user with associated cards to choose from
-  var cardAnswer = await prompt([
-    {
-      type: 'autocomplete',
-      name: 'card',
-      message: "You've chosen to edit a card. Which card would you like to edit?",
-      pageSize: 10,
-      source: function(answersSoFar, input) {
-        return fuzzySearch(answersSoFar, input, choices);
-      }
-    }
-  ])
-
   // parse out card prompt and use it to retrieve card details from database
-  var cardPrompt = cardAnswer.card.split(' -->')[0];
+  var cardPrompt = selectedCard.cards.split(' -->')[0];
   var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
 
   // present user with details to edit
@@ -285,33 +316,41 @@ async function browseCards(_, deckId) {
   // if this is the first card being displayed for a particular session
   // of card browsing, we must retrieve the deckID manually
   if (!deckId) {
-    // retrieve deck ID
-    let message = "Choose a deck to browse its cards.";
-    var [deckId, deckName] = await retrieveDeckId(message);
+    // retrieve all decks from database
+    var decks = await deckCtrlrs.getMany({});
+    // prompt user with deck choices and get answer
+    let deckMessage = "Choose a deck to browse its cards.";
+    let deckType = 'autocomplete';
+    let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
+
+    // check if user wants to exit
+    if (selectedDeck.decks == '** exit **') {
+      console.log('Exiting...');
+      process.exit();
+    }
+
+    // get deck properties for future use
+    var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
   }
 
-  // present cards associated with deck ID
+  // retrieve all associated cards from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
-  
-  var choices = cards.map(function cardsToChoices(card) {
-    return `${card.prompt} --> ${card.target}`;
-  })
+  // prompt user to select card
+  let cardMessage = 'Choose a card to view its details.';
+  let cardType = 'autocomplete';
+  let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
-  // present user with associated cards to choose from
-  var cardAnswer = await prompt([
-    {
-      type: 'autocomplete',
-      name: 'card',
-      message: "Choose a card to view its details.",
-      pageSize: 10,
-      source: function(answersSoFar, input) {
-        return fuzzySearch(answersSoFar, input, choices);
-      }
-    }
-  ]);
+  // check if user wants to go back or exit
+  if (selectedCard.cards == '<-- go back to decks') {
+    await browseCards();
+  }
+  if (selectedCard.cards == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
 
   // parse out card prompt and use it to retrieve card details from database
-  var cardPrompt = cardAnswer.card.split(' -->')[0];
+  var cardPrompt = selectedCard.cards.split(' -->')[0];
   var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
 
   // show user card details
@@ -346,10 +385,21 @@ async function browseCards(_, deckId) {
 // 3) Retrieve cards associated with deck from db
 // 4) Attempt to write JSON.stringify'd cards to export path
 async function exportCards () {
-
-  // present user with list of decks to choose from
-  let message = "You've chosen to export a deck of cards. Which deck would you like to export?";
-  var [deckId, deckName] = await retrieveDeckId(message);
+  // retrieve all decks from database
+  var decks = await deckCtrlrs.getMany({});
+  // prompt user with deck choices and get answer
+  let deckMessage = "You've chosen to export a deck of cards. Which deck would you like to export?";
+  let deckType = 'autocomplete';
+  let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
+  
+  // check if user wants to exit
+  if (selectedDeck.decks == '** exit **') {
+    console.log('Exiting...');
+    process.exit();
+  }
+  
+  // get deck properties for future use
+  var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
 
   // determine export path
   var answer = await prompt([
@@ -385,6 +435,31 @@ async function exportCards () {
 
   process.exit();
 }
+
+// *********** general helper functions *************
+
+async function getSelectedCards(cards, message, type) {
+  var choices = cards.map(function cardsToChoices(card) {
+    return `${card.prompt} --> ${card.target}`;
+  });
+
+  choices.push('<-- go back to decks', '** exit **');
+  
+  return await prompt([
+    {
+      type: type,
+      name: 'cards',
+      message: message,
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: function(answersSoFar, input) {
+        return fuzzySearch(answersSoFar, input, choices);
+      }
+    }
+  ]);
+}
+
 
 export { 
   addCard, 

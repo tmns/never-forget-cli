@@ -5,8 +5,6 @@ import fuzzy from 'fuzzy';
 
 registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
-import deckCtrlrs from '../resources/deck/deck.controller';
-
 // prompts the user if they wish to create another item immediately
 async function isCreatingAnother(item) {
   let answer = await prompt([
@@ -31,40 +29,42 @@ function decksToChoices(deck) {
   return choice;
 }
 
-// Helper function to prompt the user for the deck they wish to access
-// And then retrieve the deck ID from their response
-async function retrieveDeckId(message) {
-  // retrieve all decks from database
-  var decks = await deckCtrlrs.getMany({});
-
-  // turn our mongodb object of decks into an array of choices for inquirer
-  var choices = decks.map(decksToChoices);
-
-  // have the user choose which deck to add the card to
-  var deckAnswer = await prompt([
-    {
-      type: 'autocomplete',
-      name: 'deck',
-      message: message,
-      pageSize: 10,
-      source: function(answersSoFar, input) {
-        return fuzzySearch(answersSoFar, input, choices);
-      }
-    }
-  ]);
-
+// Helper function to return a deck's ID, name, and description property
+function getDeckProperties(decks, selectedDeck) {
   // parse out the deck name and description...
-  let deckName = deckAnswer.deck;
+  let deckName = selectedDeck.decks;
   let deckDescription = '';
   if (deckName.includes(':')) {
-    deckName = deckAnswer.deck.split(':')[0];
-    deckDescription = deckAnswer.deck.split(':')[1];
+    deckName = selectedDeck.decks.split(':')[0];
+    deckDescription = selectedDeck.decks.split(':')[1];
   }
 
   // ...and return the deck ID to be used for the create query
   let deckId = decks.filter(deck => deck.name == deckName).map(deck => deck._id)[0];
 
   return [deckId, deckName, deckDescription];
+}
+
+// Helper function to prompt user with deck choices and return selection
+async function getSelectedDecks(decks, message, type) {
+
+  var choices = decks.map(decksToChoices);
+
+  choices.push('** exit **');
+
+  return await prompt([
+    {
+      type: type,
+      name: 'decks',
+      message: message,
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: function(answersSoFar, input) {
+        return fuzzySearch(answersSoFar, input, choices);
+      }
+    }
+  ]);
 }
 
 // async version of forEAch
@@ -91,7 +91,8 @@ function fuzzySearch(answersSoFar, input, choices) {
 export { 
   isCreatingAnother, 
   decksToChoices, 
-  retrieveDeckId, 
+  getDeckProperties,
+  getSelectedDecks, 
   asyncForEach,
   fuzzySearch
 };
