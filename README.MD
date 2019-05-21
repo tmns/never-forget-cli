@@ -13,10 +13,10 @@ So far, the following functionality has been implemented:
 * Edit card
 * Delete deck
 * Delete card
+* Import cards
 * Export cards
 
 The following functionality remains:
-* Import cards
 * Study cards
 
 To install, `cd` to project root and run:
@@ -38,14 +38,14 @@ Options:
 Commands:
   configure|c    configure a new database
   createdeck|cd  create a new deck
-  addcard|a      add a card
-  delcards|dc    delete one or more cards
   deldecks|dd    delete one or more decks
   editdeck|ed    edit deck details (name / description)
+  addcard|a      add a card
+  delcards|dc    delete one or more cards
   editcard|ec    edit card details (prompt, target, etc.)
   browse|b       browse cards
+  import|i       import one or more cards into a deck
   export|ex      export a deck of cards
-
 ```
 If you want to go beyond this however, you will need to set up a Mongo database, as that's what the app uses for data storage. You can either opt for a local database or something like Atlas. 
 
