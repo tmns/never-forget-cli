@@ -59,4 +59,9 @@ async function attemptConnection(url) {
   }
 }
 
-export { defaultDbUrl, dbUrlPath, attemptConnection, connectAppToDB };
+export { 
+  defaultDbUrl, 
+  dbUrlPath, 
+  attemptConnection, 
+  connectAppToDB 
+};

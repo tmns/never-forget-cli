@@ -20,9 +20,17 @@ async function configureDb() {
       name: 'dbOption',
       message:
         "You've chosen to manually configure the database URL. Would you like to use the default or your own?",
-      choices: [`Use the default URL (${defaultDbUrl})`, 'Use a different URL']
+      choices: [
+        `Use the default URL (${defaultDbUrl})`, 
+        'Use a different URL',
+        '** cancel **'
+      ]
     }
   ]);
+
+  if (answer.dbOption == '** cancel **') {
+    process.exit();
+  }
 
   // the user wants to use a databse string different from the default
   if (answer.dbOption == 'Use a different URL') {
