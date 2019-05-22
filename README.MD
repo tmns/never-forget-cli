@@ -15,9 +15,10 @@ So far, the following functionality has been implemented:
 * Delete card
 * Import cards
 * Export cards
+* Study cards (basic)
 
 The following functionality remains:
-* Study cards
+* Study cards (spaced repitition)
 
 To install, `cd` to project root and run:
 ```
