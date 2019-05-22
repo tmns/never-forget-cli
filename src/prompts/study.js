@@ -16,6 +16,13 @@ import {
 
 const HOUR_IN_MILIS = 60 * 60 * 1000;
 
+// Walk the user through a card study session
+// 1) Present user with list of decks to choose from
+// 2) Retrieve associated cards scheduled for review
+// 3) Present user with each card's front & back
+// 4) Determine how well the user knows the particular card
+// 5) Calculate new card progress details
+// 6) Update card progress data in db
 async function studyCards () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
