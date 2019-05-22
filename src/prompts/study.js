@@ -130,9 +130,9 @@ async function quizUserAndGetScores(overDueCards) {
   // define our card metrics
   // ie, how a user rates their confidence for each card
   var cardMetrics = [
-    "I couldn't recall it at all",
-    "I recalled it after thinking a bit",
-    "I recalled it instantly"
+    "I couldn't recall it at all.",
+    "I recalled it after thinking a bit.",
+    "I recalled it immediately!"
   ]
 
   // loop through all cards
