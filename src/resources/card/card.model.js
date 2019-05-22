@@ -20,7 +20,7 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
-    dateAdded: {
+    timeAdded: {
       type: Number,
       required: true
     },

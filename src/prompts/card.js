@@ -35,7 +35,9 @@ import {
   MULTIPLE_CHOICE
 } from '../utils/promptTypes';
 
-import { DAY_IN_MILIS } from './study';
+import {  
+  HOUR_IN_MILIS 
+} from './study';
 
 var writeFile = promisify(fs.writeFile);
 var readFile = promisify(fs.readFile);
@@ -278,7 +280,7 @@ async function editCardDetails () {
       type: 'input',
       name: 'promptExample',
       message: 'Prompt example (optional)',
-      default: cardDetails['promptExample'] ? cardDetails.promptExample : ''
+      default: cardDetails.promptExample
     },
     {
       type: 'input',
@@ -296,7 +298,7 @@ async function editCardDetails () {
     {
       type: 'input',
       name: 'targetExample',
-      default: cardDetails['targetExample'] ? cardDetails.targetExample : ''
+      default: cardDetails.targetExample
     }
   ]);
 
@@ -360,13 +362,12 @@ async function browseCards(_, deckId) {
   var cardPrompt = selectedCard.cards.split(' -->')[0];
   var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
 
-  // show user card details
   console.log(
     `Card details...
     Prompt: ${cardDetails.prompt}
-    Example: ${cardDetails['promptExample'] ? cardDetails.promptExample : ''}
+    Example: ${cardDetails.promptExample}
     Target: ${cardDetails.target}
-    Example: ${cardDetails['targetExample'] ? cardDetails.targetExample : ''}`
+    Example: ${cardDetails.targetExample}`
   );
 
   // determine if user wants to continue browsing the deck  
@@ -426,9 +427,9 @@ async function exportCards (_, dirname) {
   let formattedCards = cards.map(function format(card) {
     return {
       prompt: card.prompt,
-      promptExample: card['promptExample'] ? card.promptExample : '',
+      promptExample: card.promptExample,
       target: card.target,
-      targetExample: card['targetExample'] ? card.targetExample : ''
+      targetExample: card.targetExample
     }
   })
 
@@ -539,27 +540,20 @@ async function getSelectedCards(cards, message, type) {
 // Takes a plain card object and prepares it for making a create query
 function prepareCardForQuery(deckId) {
   return function prepare(cardObject) {
-    let today = Math.round(new Date().getTime() / DAY_IN_MILIS);
-    let tomorrow = today + 1;
+    let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
 
     let cardForQuery = {
       prompt: cardObject.prompt,
+      promptExample: cardObject.promptExample,
       target: cardObject.target,
-      dateAdded: today,
-      nextReview: tomorrow,
+      targetExample: cardObject.targetExample,
+      timeAdded: now,
+      nextReview: now,
       timesCorrect: 0
     };
 
     if (deckId !== null) {
       cardForQuery['deck'] = deckId;
-    }
-  
-    if (cardObject.promptExample != '') {
-      cardForQuery['promptExample'] = cardObject.promptExample;
-    }
-  
-    if (cardObject.targetExample != '') {
-      cardForQuery['targetExample'] = cardObject.targetExample;
     }
   
     return cardForQuery;

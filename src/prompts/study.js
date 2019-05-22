@@ -14,7 +14,7 @@ import {
   asyncForEach
 } from './shared';
 
-const DAY_IN_MILIS = 24 * 60 * 60 * 1000;
+const HOUR_IN_MILIS = 60 * 60 * 1000;
 
 async function studyCards () {
   // retrieve all decks from database
@@ -34,8 +34,8 @@ async function studyCards () {
   var [deckId] = await getDeckProperties(decks, selectedDeck);
 
   // get cards scheduled for review
-  let tomorrow = Math.floor(new Date().getTime() / DAY_IN_MILIS) + 1;
-  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lt: tomorrow }});
+  let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
+  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lte: now }});
 
   var numCards = Object.keys(overDueCards).length;
   // if there are no overdue cards, prompt user if they want to choose a different deck to study
@@ -63,13 +63,13 @@ async function studyCards () {
       type: 'input',
       name: 'limit',
       message: `Great choice! You have ${numCards} cards to review in this deck. How many cards do you want to study?`,
-      default: numCards < 15 ? numCards : 15;
+      default: numCards < 15 ? numCards : 15
     }
   ]);
 
   // sort cards by date in ascending order (ie, oldest card first)
   // and set the amount presented to user's limit
-  let cardsToStudy = overDueCards.sort((a, b) => a.dateAdded - b.dateAdded).slice(0, answer.limit)
+  let cardsToStudy = overDueCards.sort((a, b) => a.timeAdded - b.timeAdded).slice(0, answer.limit)
 
   // quiz user with cards and retrieve the score given to each card by the user
   await quizUserAndGetScores(cardsToStudy);
@@ -80,13 +80,20 @@ async function studyCards () {
 // helper function to perform database update query for card progreess
 async function attemptUpdateProgress(card, cardScore) {
   // calculate the new progress values
-  let today = Math.floor(new Date().getTime() / DAY_IN_MILIS);
-  let { nextReview, timesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, today);
+  let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
+  let { nextReview, timesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, now);
+
+  // construct next time for review string
+  let nextTime = nextReview - now;
+  let nextTimeString = `${nextTime} hours`;
+  if (nextTime > 24) {
+    nextTimeString = `${Math.floor(nextTime / 24)} day(s)`;
+  }
 
   // attempt database update query
   try {
     await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
-    console.log(`Card progress updated. This card is scheduled for another review in ${nextReview - today} day(s).`)
+    console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
   }
@@ -97,7 +104,7 @@ async function attemptUpdateProgress(card, cardScore) {
 // adapted from: https://github.com/lo-tp/memory-scheduler
 function getNewProgressValues(score, timesCorrect, now) {
   // our setup intervals and scores to change intervals
-  var intervals = [1, 2, 3, 8, 17];
+  var intervals = [2, 4, 6, 16, 34];
   var scoreToIntervalChange = [-3, -1, 1];
 
   // determine if user knew the card immediately
@@ -108,9 +115,14 @@ function getNewProgressValues(score, timesCorrect, now) {
   }
 
   // determine next review date
-  var nextReview = now + 1;
-  if (knewImmediately && timesCorrect < intervals.length) {
-    nextReview = now + intervals[timesCorrect];
+  var nextReview = now + 2;
+  if (knewImmediately) {
+    if (timesCorrect < intervals.length) {
+      nextReview = now + intervals[timesCorrect];
+    }
+    else if (timesCorrect >= intervals.length) {
+      nextReview = now + (intervals.slice(-1) * ((timesCorrect + 1) - intervals.length));
+    }
   }
 
   // determine new timesCorrect, if less than 0, normalize to 0
@@ -142,7 +154,7 @@ async function quizUserAndGetScores(overDueCards) {
     console.log(
       `Card front...
       Prompt: ${card.prompt}
-      Example: ${card['promptExample'] ? card.promptExample : ''}`
+      Example: ${card.promptExample}`
     );
 
     await prompt([
@@ -157,7 +169,7 @@ async function quizUserAndGetScores(overDueCards) {
     console.log(
       `Card back...
       Target: ${card.target}
-      Example: ${card['targetExample'] ? card.targetExample : ''}`
+      Example: ${card.targetExample}`
     )
 
     // detmine user's confidence with the card
@@ -183,4 +195,4 @@ async function quizUserAndGetScores(overDueCards) {
   })
 }
 
-export { DAY_IN_MILIS, studyCards };
+export { HOUR_IN_MILIS, studyCards };
