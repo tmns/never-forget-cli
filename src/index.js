@@ -21,6 +21,8 @@ import {
   importCards
 } from './prompts/card';
 
+import { studyCards } from './prompts/study';
+
 import { connectAppToDB } from './utils/db';
 
 program
@@ -90,6 +92,12 @@ program
   .action(async function exportWrapper(commanderData) {
     return await exportCards(commanderData, __dirname);
   });
+
+program
+  .command('study')
+  .alias('s')
+  .description('study the cards that are scheduled for today')
+  .action(studyCards);
 
 start();
 

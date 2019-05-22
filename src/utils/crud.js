@@ -1,7 +1,7 @@
 function getOne(model) {
-  return async function get(target) {
+  return async function get(criteria) {
     var doc = await model
-      .findOne(target)
+      .findOne(criteria)
       .lean()
       .exec();
 
@@ -14,9 +14,26 @@ function getOne(model) {
 }
 
 function getMany(model) {
-  return async function get(target) {
+  return async function get(criteria) {
     var docs = await model
-      .find(target)
+      .find(criteria)
+      .lean()
+      .exec();
+
+    if (!docs) {
+      throw new Error('Nothing found');
+    }
+
+    return docs;
+  };
+}
+
+function getManySortLimit(model) {
+  return async function get(criteria, sort, limit) {
+    var docs = await model
+      .find(criteria)
+      .sort(sort)
+      .limit(limit)
       .lean()
       .exec();
 
@@ -53,6 +70,21 @@ function updateOne(model) {
   };
 }
 
+function updateMany(model) {
+  return async function update(criteria, details) {
+    var updatedDocs = await model
+      .updateMany(criteria, details, { new: true })
+      .lean()
+      .exec();
+
+      if (!updatedDocs) {
+        throw new Error('Noting Updated');
+      }
+
+      return updatedDocs;
+  }
+}
+
 function removeOne(model) {
   return async function(id) {
     var removedDoc = await model.findByIdAndDelete(id);
@@ -81,7 +113,9 @@ export const crudControllers = model => ({
   removeMany: removeMany(model),
   removeOne: removeOne(model),
   updateOne: updateOne(model),
+  updateMany: updateMany(model),
   getMany: getMany(model),
+  getManySortLimit: getManySortLimit(model),
   getOne: getOne(model),
   createOne: createOne(model)
 });

@@ -35,6 +35,8 @@ import {
   MULTIPLE_CHOICE
 } from '../utils/promptTypes';
 
+import { DAY_IN_MILIS } from './study';
+
 var writeFile = promisify(fs.writeFile);
 var readFile = promisify(fs.readFile);
 
@@ -50,9 +52,9 @@ async function addCard(_, deckId) {
     // retrieve all decks from database
     var decks = await deckCtrlrs.getMany({});
     // prompt user with deck choices and get answer
-    let message = ADD_CARDS_WHICH_DECK;
+    let deckMessage = ADD_CARDS_WHICH_DECK;
     let deckType = SINGLE_CHOICE;
-    let selectedDeck = await getSelectedDecks(decks, message, deckType);
+    let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
     // check if user wants to exit
     if (selectedDeck.decks == '** exit **') {
@@ -375,7 +377,7 @@ async function browseCards(_, deckId) {
       message: `Would you like to continue browsing ${deckName}?`,
       default: true
     }
-  ])
+  ]);
 
   if (answer.continue) {
     await browseCards(_, deckId);
@@ -537,9 +539,15 @@ async function getSelectedCards(cards, message, type) {
 // Takes a plain card object and prepares it for making a create query
 function prepareCardForQuery(deckId) {
   return function prepare(cardObject) {
+    let today = Math.round(new Date().getTime() / DAY_IN_MILIS);
+    let tomorrow = today + 1;
+
     let cardForQuery = {
       prompt: cardObject.prompt,
-      target: cardObject.target
+      target: cardObject.target,
+      dateAdded: today,
+      nextReview: tomorrow,
+      timesCorrect: 0
     };
 
     if (deckId !== null) {

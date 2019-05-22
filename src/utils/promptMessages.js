@@ -13,6 +13,9 @@ const IMPORT_CARDS_WHICH_DECK = "You've chosen to import one or more cards. To w
 const DEL_DECK_WHICH_DECK = "You've chosen to delete one or more decks. Which deck(s) do you wish to delete? (you can filter by typing)";
 const EDIT_DECK_WHICH_DECK = "You've chosen to edit a deck's details. Which deck would you like to edit?";
 
+// messages for study tasks
+const STUDY_CARDS_WHICH_DECK = "You've chosen to study some cards. Which deck do you want to study with?";
+
 export {
   ADD_CARDS_WHICH_DECK,
   DEL_CARDS_WHICH_DECK,
@@ -24,5 +27,6 @@ export {
   EXPORT_CARDS_WHICH_DECK,
   IMPORT_CARDS_WHICH_DECK,
   DEL_DECK_WHICH_DECK,
-  EDIT_DECK_WHICH_DECK
+  EDIT_DECK_WHICH_DECK,
+  STUDY_CARDS_WHICH_DECK
 }

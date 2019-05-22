@@ -20,6 +20,18 @@ const cardSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    dateAdded: {
+      type: Number,
+      required: true
+    },
+    nextReview: {
+      type: Number,
+      required: true
+    },
+    timesCorrect: {
+      type: Number,
+      required: true
+    },
     deck: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: 'deck',
