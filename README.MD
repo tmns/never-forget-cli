@@ -47,6 +47,7 @@ Commands:
   browse|b       browse cards
   import|i       import one or more cards into a deck
   export|ex      export a deck of cards
+  study|s        study cards scheduled for review
 ```
 If you want to go beyond this however, you will need to set up a Mongo database, as that's what the app uses for data storage. You can either opt for a local database or something like Atlas. 
 

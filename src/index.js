@@ -96,7 +96,7 @@ program
 program
   .command('study')
   .alias('s')
-  .description('study the cards that are scheduled for today')
+  .description('study cards scheduled for review')
   .action(studyCards);
 
 start();
