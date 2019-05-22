@@ -35,10 +35,11 @@ async function studyCards () {
 
   // get cards scheduled for review
   let tomorrow = Math.floor(new Date().getTime() / DAY_IN_MILIS) + 1;
-  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lt: tomorrow }});  
+  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lt: tomorrow }});
 
+  var numCards = Object.keys(overDueCards).length;
   // if there are no overdue cards, prompt user if they want to choose a different deck to study
-  if (Object.keys(overDueCards).length == 0) {
+  if (numCards == 0) {
     let answer = await prompt([
       {
         type: 'confirm',
@@ -56,19 +57,21 @@ async function studyCards () {
     }
   }
 
+  var answer = 
+
   // determine how many cards the user wants to study
   var answer = await prompt([
     {
       type: 'input',
       name: 'limit',
-      message: `Great choice! You have ${Object.keys(overDueCards).length} cards to review in this deck. How many cards do you want to study?`,
-      default: 5
+      message: `Great choice! You have ${numCards} cards to review in this deck. How many cards do you want to study?`,
+      default: numCards < 15 ? numCards : 15;
     }
   ]);
 
   // sort cards by date in ascending order (ie, oldest card first)
   // and set the amount presented to user's limit
-  var cardsToStudy = overDueCards.sort((a, b) => a.dateAdded - b.dateAdded).slice(0, answer.limit)
+  let cardsToStudy = overDueCards.sort((a, b) => a.dateAdded - b.dateAdded).slice(0, answer.limit)
 
   // quiz user with cards and retrieve the score given to each card by the user
   await quizUserAndGetScores(cardsToStudy);
