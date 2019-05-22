@@ -34,7 +34,7 @@ async function studyCards () {
   var [deckId] = await getDeckProperties(decks, selectedDeck);
 
   // get cards scheduled for review
-  let tomorrow = Math.round(new Date().getTime() / DAY_IN_MILIS) + 1;
+  let tomorrow = Math.floor(new Date().getTime() / DAY_IN_MILIS) + 1;
   var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lt: tomorrow }});  
 
   // if there are no overdue cards, prompt user if they want to choose a different deck to study
@@ -85,7 +85,7 @@ async function attemptUpdateProgress(card, cardScore) {
   // attempt database update query
   try {
     await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
-    console.log(`Card progress updated. This card is scheduled for another review in ${nextReview - today} days.`)
+    console.log(`Card progress updated. This card is scheduled for another review in ${nextReview - today} day(s).`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
   }
