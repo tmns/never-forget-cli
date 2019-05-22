@@ -4,22 +4,23 @@ A CLI version of *Never Forget*, a spaced repetition learning app.
 
 It makes heavy use of [Inquirer](https://github.com/SBoudrias/Inquirer.js) and [Commander](https://github.com/tj/commander.js) to interact with the user and make the experience pleasant.
 
-So far, the following functionality has been implemented:
-* Create deck
-* Create card
+For the Spaced Repetition functionality I worked off of and adapted / modified the [memory-scheduler](https://github.com/lo-tp/memory-scheduler) algorithm. At the moment, the adapted version uses hour-based intervals rather than day-based. This can be easily changed though and is something I am still experimenting with.
+
+So far, all of the main functionality has been implemented. You can:
+* Create a deck
+* Create a card
 * Browse decks
 * Browse cards
-* Edit deck
-* Edit card
-* Delete deck
-* Delete card
+* Edit a deck
+* Edit a card
+* Delete a deck
+* Delete a card
 * Import cards
 * Export cards
 * Study cards
 
 Todo:
-* Test it thoroughly
-* Change spaced repetition intervals?
+* Write tests
 
 To install, `cd` to project root and run:
 ```
