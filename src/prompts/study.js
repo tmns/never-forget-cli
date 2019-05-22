@@ -16,11 +16,6 @@ import {
 
 const DAY_IN_MILIS = 24 * 60 * 60 * 1000;
 
-var cardMetrics = new Map();
-cardMetrics.set("I couldn't recall it at all", -3);
-cardMetrics.set("I recalled it after thinking a bit", -1);
-cardMetrics.set("I recalled it instantly", 1);
-
 async function studyCards () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
@@ -36,8 +31,9 @@ async function studyCards () {
   }
   
   // get deck properties for future use
-  var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+  var [deckId] = await getDeckProperties(decks, selectedDeck);
 
+  // get cards scheduled for review
   let tomorrow = Math.round(new Date().getTime() / DAY_IN_MILIS) + 1;
   var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lt: tomorrow }});  
 
@@ -75,18 +71,70 @@ async function studyCards () {
   var cardsToStudy = overDueCards.sort((a, b) => a.dateAdded - b.dateAdded).slice(0, answer.limit)
 
   // quiz user with cards and retrieve the score given to each card by the user
-  var cardScores = {};
-  await quizUserAndGetScores(cardsToStudy, cardScores);
-
-  // TODO: IMPLEMENT SR LEARNING
-  console.log(cardScores);
+  await quizUserAndGetScores(cardsToStudy);
 
   process.exit();
 }
 
+// helper function to perform database update query for card progreess
+async function attemptUpdateProgress(card, cardScore) {
+  // calculate the new progress values
+  let today = Math.floor(new Date().getTime() / DAY_IN_MILIS);
+  let { nextReview, timesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, today);
+
+  // attempt database update query
+  try {
+    await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
+    console.log(`Card progress updated. This card is scheduled for another review in ${nextReview - today} days.`)
+  } catch (err) {
+    throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
+  }
+}
+
+// Helper function to calculate the new progress values of card
+// ie, updated review date and number of consecutive times correct
+// adapted from: https://github.com/lo-tp/memory-scheduler
+function getNewProgressValues(score, timesCorrect, now) {
+  // our setup intervals and scores to change intervals
+  var intervals = [1, 2, 3, 8, 17];
+  var scoreToIntervalChange = [-3, -1, 1];
+
+  // determine if user knew the card immediately
+  // ie gave a score equal to the length of score intervals array
+  var knewImmediately = false;
+  if (score == scoreToIntervalChange.length - 1) {
+    knewImmediately = true;
+  }
+
+  // determine next review date
+  var nextReview = now + 1;
+  if (knewImmediately && timesCorrect < intervals.length) {
+    nextReview = now + intervals[timesCorrect];
+  }
+
+  // determine new timesCorrect, if less than 0, normalize to 0
+  var timesCorrect = timesCorrect + scoreToIntervalChange[score];
+  if (timesCorrect < 0) {
+    timesCorrect = 0;
+  }
+  
+  return {
+    nextReview,
+    timesCorrect
+  }
+}
+
 // Helper function to quiz user on cards and determine user's confidence
 // with each card (ie the card's score)
-async function quizUserAndGetScores(overDueCards, cardScores) {
+async function quizUserAndGetScores(overDueCards) {
+  // define our card metrics
+  // ie, how a user rates their confidence for each card
+  var cardMetrics = [
+    "I couldn't recall it at all",
+    "I recalled it after thinking a bit",
+    "I recalled it instantly"
+  ]
+
   // loop through all cards
   await asyncForEach(overDueCards, async function quizUser(card) {  
     // show the card front
@@ -118,15 +166,19 @@ async function quizUserAndGetScores(overDueCards, cardScores) {
         name: 'score',
         message: 'How quickly did you recall this card?',
         choices: [
-          "I couldn't recall it at all",
-          "I recalled it after thinking a bit",
-          "I recalled it instantly"
+          cardMetrics[0],
+          cardMetrics[1],
+          cardMetrics[2]
         ]
       }
     ]);
 
-    // set the card's score (to be used for spaced repitition calculation)
-    cardScores[`${card._id}`] = cardMetrics.get(answer.score);
+    // attempt to update card progress in database
+    try {
+      await attemptUpdateProgress(card, cardMetrics.indexOf(answer.score));
+    } catch(err) {
+      console.log(err);
+    }
   })
 }
 
