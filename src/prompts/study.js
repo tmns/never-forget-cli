@@ -57,8 +57,6 @@ async function studyCards () {
     }
   }
 
-  var answer = 
-
   // determine how many cards the user wants to study
   var answer = await prompt([
     {
