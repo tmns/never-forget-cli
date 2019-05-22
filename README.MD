@@ -15,10 +15,11 @@ So far, the following functionality has been implemented:
 * Delete card
 * Import cards
 * Export cards
-* Study cards (basic)
+* Study cards
 
-The following functionality remains:
-* Study cards (spaced repitition)
+Todo:
+* Test it thoroughly
+* Change spaced repetition intervals?
 
 To install, `cd` to project root and run:
 ```
