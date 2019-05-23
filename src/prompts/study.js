@@ -99,9 +99,9 @@ async function quizUserAndGetScores(overDueCards) {
   await asyncForEach(overDueCards, async function quizUser(card) {  
     // show the card front
     console.log(
-      `Card front...
+      `\nCard front...
       Prompt: ${card.prompt}
-      Example: ${card.promptExample}`
+      Example: ${card.promptExample}\n`
     );
 
     await prompt([
@@ -114,9 +114,9 @@ async function quizUserAndGetScores(overDueCards) {
 
     // show the card back
     console.log(
-      `Card back...
+      `\nCard back...
       Target: ${card.target}
-      Example: ${card.targetExample}`
+      Example: ${card.targetExample}\n`
     )
 
     // detmine user's confidence with the card
@@ -158,7 +158,7 @@ async function attemptUpdateProgress(card, cardScore) {
   // attempt database update query
   try {
     await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
-    console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
+    console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.\n`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
   }

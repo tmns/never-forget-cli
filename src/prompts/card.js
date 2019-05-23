@@ -363,11 +363,11 @@ async function browseCards(_, deckId) {
   var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
 
   console.log(
-    `Card details...
+    `\nCard details...
     Prompt: ${cardDetails.prompt}
     Example: ${cardDetails.promptExample}
     Target: ${cardDetails.target}
-    Example: ${cardDetails.targetExample}`
+    Example: ${cardDetails.targetExample}\n`
   );
 
   // determine if user wants to continue browsing the deck  
