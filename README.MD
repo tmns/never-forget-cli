@@ -28,7 +28,7 @@ To build, `cd` to project root and run:
 ```
 $ yarn install && yarn build
 ```
-This should install dependencies and then output a transpiled version of index.js to `src/dist`. From there you can run the app directly or you can  use `yarn start` as shown in the next section.
+This should install dependencies and then output a transpiled version of index.js to `src/dist`. From there you can run the app directly (`node index.js [command]`) or you can  use `yarn start [command]` as shown in the next section.
 
 ## Usage
 
@@ -58,7 +58,7 @@ Commands:
 ```
 If you want to go beyond this however, you will need access to a Mongo database, as that's what the app uses for data storage. You can either opt for a local database or something like Atlas. 
 
-Once you have the database connection string, you can either run `yarn start c` to have the app configure the database itself or save the string to `src/dist/config/dbUrl`. After that, you should be ready to roll!
+Once you have the database connection string, you can either run `yarn start c` to have the app configure the database itself or save the string to `./config/dbUrl`. After that, you should be ready to roll!
 
 ## License
 This library may be used under the WTFPL - or, if you take issue with that, consider it to be under the CC0.
