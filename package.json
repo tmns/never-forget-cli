@@ -1,10 +1,10 @@
 {
   "name": "never-forget-cli",
   "version": "1.0.0",
-  "description": "CLI for Never Forget spaced repetition learning app",
+  "description": "CLI for Never Forget, a spaced repetition learning app",
   "main": "index.js",
   "author": " tmns <tmn5@pm.me>",
-  "license": "MIT",
+  "license": "WTFPL",
   "scripts": {
     "build": "babel src --out-dir dist",
     "dev": "nodemon --exec yarn restart",
