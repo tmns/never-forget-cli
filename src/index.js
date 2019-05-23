@@ -100,6 +100,14 @@ start();
 // **********************
 
 async function start () {
+  // if no command or option was passed, present user with welcome message and help text
+  if (process.argv.length < 3) {
+    console.log('\nWelcome to the Never Forget CLI!\nFor help with how to use this program, see below:\n')
+    program.parse([process.argv[0], process.argv[1], '-h']);
+    process.exit();
+  }
+
+  // if neither help nor database config was chosen, attempt to connect database
   if (!process.argv[2].match(/^(c|configure|-h|--help)$/)) {
     try {
       await connectAppToDB();
@@ -108,5 +116,16 @@ async function start () {
       process.exit();
     }
   }
+
+  // parse arguments into commander
   program.parse(process.argv);
+
+  // if an invalid command was given, let the user know
+  var validCommands = program.commands.map(cmd => cmd._name);
+  var invalidCommands = program.args.filter(arg => !validCommands.includes(arg._name));
+
+  if (invalidCommands.length > 0) {
+    console.log(`\nInvalid command(s): ${invalidCommands.join(', ')}. See --help for a list of available commands.\n`);
+    process.exit();
+  }
 }
