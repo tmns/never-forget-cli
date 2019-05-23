@@ -79,7 +79,7 @@ async function testAndSaveConnection(url) {
 
     if (answer.saveToFile) {
       try {
-        await mkdir(path.join(__dirname, 'config'));
+        await mkdir(path.join(dbUrlPath, '../'));
       } catch (err) {
         // directory already exists, do nothing
       }

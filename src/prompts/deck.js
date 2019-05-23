@@ -119,7 +119,7 @@ async function deleteDecks() {
     {
       type: 'confirm',
       name: 'deleteDecks',
-      message: `You've chosen to delete the following decks: ${deckNames.join(', ')}. This will permenantly remove both the decks and their containing cards. Are you sure this is what you want to do?`,
+      message: `You've chosen to delete the following deck(s): ${deckNames.join(', ')}. This will permenantly remove both the decks and their containing cards. Are you sure this is what you want to do?`,
       default: false
     }
   ]);

@@ -179,7 +179,7 @@ async function deleteCards() {
     {
       type: 'confirm',
       name: 'deleteCards',
-      message: `You've chosen to delete the following cards: ${selectedCards.cards.join(', ')}. This cannot be undone. Are you sure this is what you want to do?`,
+      message: `You've chosen to delete the following card(s): ${selectedCards.cards.join(', ')}. This cannot be undone. Are you sure this is what you want to do?`,
       default: false
     }
   ]);
@@ -392,7 +392,7 @@ async function browseCards(_, deckId) {
 // 2) Prompt user for path to export to (default is index.js's current dir)
 // 3) Retrieve cards associated with deck from db
 // 4) Attempt to write JSON.stringify'd cards to export path
-async function exportCards (_, dirname) {
+async function exportCards () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
@@ -415,7 +415,7 @@ async function exportCards (_, dirname) {
       type: 'input',
       name: 'exportPath',
       message: 'Where do you wish to export the cards?',
-      default: dirname
+      default: path.join('.')
     }
   ]);
 
@@ -449,7 +449,7 @@ async function exportCards (_, dirname) {
 // 2) Prompt user for path to import from (default is index.js's current dir)
 // 3) Retrieve to read JSON.parse'd cards 
 // 4) Create a card in the database for each card
-async function importCards (_, dirname) {
+async function importCards () {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
@@ -472,7 +472,7 @@ async function importCards (_, dirname) {
       type: 'input',
       name: 'importPath',
       message: 'From which file would you like to import the card(s)?',
-      default: path.join(dirname, `${deckName.split(' ').join('-')}-export.json`)
+      default: path.join(`./${deckName.split(' ').join('-')}-export.json`)
     }
   ]);
 

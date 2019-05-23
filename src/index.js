@@ -81,17 +81,13 @@ program
   .command('import')
   .alias('i')
   .description('import one or more cards into a deck')
-  .action(async function importWrapper(commanderData) {
-    return await importCards(commanderData, __dirname);
-  });
+  .action(importCards);
 
 program
   .command('export')
   .alias('ex')
   .description('export a deck of cards')
-  .action(async function exportWrapper(commanderData) {
-    return await exportCards(commanderData, __dirname);
-  });
+  .action(exportCards);
 
 program
   .command('study')

@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 var readFile = promisify(fs.readFile);
 
 const defaultDbUrl = 'mongodb://localhost:27017/neverForgetDB';
-const dbUrlPath = path.join(__dirname, '../config', 'dbUrl');
+const dbUrlPath = path.join('./config', 'dbUrl');
 
 async function connectAppToDB() {
   // if db isn't configured, return immediately
@@ -26,7 +26,6 @@ async function connectAppToDB() {
 
   try {
     await attemptConnection(dbUrl);
-    console.log('Successfully connected to database.');
   } catch (err) {
     throw new Error(`Error connecting to database: ${err}\nExiting.`);
   }

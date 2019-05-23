@@ -61,3 +61,6 @@ typings/
 .next
 
 dist
+
+# config folder for database url
+config
