@@ -77,12 +77,20 @@ async function addCard(_, deckId) {
       type: 'input',
       name: 'prompt',
       message: 'Prompt (you can think of this as the front of the card)',
-      validate: function(value) {
+      validate: async function(value) {
         var pass = value.trim().match(/^.+/);
-        if (pass) {
+
+        // retrieve all cards from database to test if card prompt already exists
+        let cards = await cardCtrlrs.getMany({ deck: deckId });
+        let cardPrompts = cards.map(card => card.prompt);
+
+        let alreadyExist = cardPrompts.includes(value);
+
+        if (pass && !alreadyExist) {
           return true;
         }
-        return 'Sorry, you must enter a prompt for the card.';
+
+        return 'Sorry, you must enter a unique prompt for the card.';
       }
     },
     {
@@ -173,7 +181,6 @@ async function deleteCards() {
     process.exit();
   }
 
-
   // confirm user wants to delete the selected card(s)
   var isSure = await prompt([
     {
@@ -256,10 +263,16 @@ async function editCardDetails () {
     console.log('Exiting...');
     process.exit();
   }
-  
-  // parse out card prompt and use it to retrieve card details from database
-  var cardPrompt = selectedCard.cards.split(' -->')[0];
-  var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
+
+  // get necessary card properties
+  var [
+    cardId, 
+    cardPrompt, 
+    promptExample, 
+    cardTarget, 
+    targetExample
+  ] = getCardProperties(selectedCard, cards);
+
 
   // present user with details to edit
   var cardAnswers = await prompt([
@@ -267,12 +280,22 @@ async function editCardDetails () {
       type: 'input',
       name: 'prompt',
       message: 'Card prompt',
-      default: cardDetails.prompt,
+      default: cardPrompt,
       validate: function(value) {
         var pass = value.trim().match(/^.+/);
-        if (pass) {
+
+        // create list of card propmts to check if new prompt already exists
+        let cardPrompts = cards.map(card => card.prompt);
+        
+        let alreadyExist = false;
+        if (value != cardPrompt && cardPrompts.includes(value)) {
+          alreadyExist = true;
+        }
+
+        if (pass && !alreadyExist) {
           return true;
         }
+
         return 'Sorry, you must enter a prompt for the card.';
       }
     },
@@ -280,13 +303,13 @@ async function editCardDetails () {
       type: 'input',
       name: 'promptExample',
       message: 'Prompt example (optional)',
-      default: cardDetails.promptExample
+      default: promptExample
     },
     {
       type: 'input',
       name: 'target',
       message: 'Card target',
-      default: cardDetails.target,
+      default: cardTarget,
       validate: function(value) {
         var pass = value.trim().match(/^.+/);
         if (pass) {
@@ -298,7 +321,7 @@ async function editCardDetails () {
     {
       type: 'input',
       name: 'targetExample',
-      default: cardDetails.targetExample
+      default: targetExample
     }
   ]);
 
@@ -307,7 +330,7 @@ async function editCardDetails () {
 
   // attempt to update card in database
   try {
-    await cardCtrlrs.updateOne(cardDetails._id, newCardDetails);
+    await cardCtrlrs.updateOne(cardId, newCardDetails);
     console.log('Card successfully updated!')
   } catch (err) {
     console.log(`Error encountered while updating card: ${err}.\nExiting...`);
@@ -358,16 +381,21 @@ async function browseCards(_, deckId) {
     process.exit();
   }
 
-  // parse out card prompt and use it to retrieve card details from database
-  var cardPrompt = selectedCard.cards.split(' -->')[0];
-  var cardDetails = await cardCtrlrs.getOne({prompt: cardPrompt});
+  // get necessary card properties
+  var [
+    cardId,
+    cardPrompt, 
+    promptExample, 
+    cardTarget, 
+    targetExample
+  ] = getCardProperties(selectedCard, cards);
 
   console.log(
     `\nCard details...
-    Prompt: ${cardDetails.prompt}
-    Example: ${cardDetails.promptExample}
-    Target: ${cardDetails.target}
-    Example: ${cardDetails.targetExample}\n`
+    Prompt: ${cardPrompt}
+    Example: ${promptExample}
+    Target: ${cardTarget}
+    Example: ${targetExample}\n`
   );
 
   // determine if user wants to continue browsing the deck  
@@ -537,27 +565,47 @@ async function getSelectedCards(cards, message, type) {
   ]);
 }
 
+// Helper function to parse out card properties
+function getCardProperties(selectedCard, cards) {
+  // parse out card prompt and use it to determine card details
+ var cardPrompt = selectedCard.cards.split(' -->')[0],
+     cardDetails = cards.filter(card => card.prompt == cardPrompt)[0],
+     
+     cardId = cardDetails._id,
+     cardPrompt = cardDetails.prompt,
+     promptExample = cardDetails.promptExample,
+     cardTarget = cardDetails.target,
+     targetExample = cardDetails.targetExample;
+ 
+ return [
+   cardId, 
+   cardPrompt, 
+   promptExample, 
+   cardTarget, 
+   targetExample
+ ];
+}
+
 // Takes a plain card object and prepares it for making a create query
 function prepareCardForQuery(deckId) {
   return function prepare(cardObject) {
-    let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
+    var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS),
 
-    let cardForQuery = {
-      prompt: cardObject.prompt,
-      promptExample: cardObject.promptExample,
-      target: cardObject.target,
-      targetExample: cardObject.targetExample,
-      timeAdded: now,
-      nextReview: now,
-      timesCorrect: 0
-    };
+        cardForQuery = {
+          prompt: cardObject.prompt,
+          promptExample: cardObject.promptExample,
+          target: cardObject.target,
+          targetExample: cardObject.targetExample,
+          timeAdded: now,
+          nextReview: now,
+          timesCorrect: 0
+        };
 
     if (deckId !== null) {
       cardForQuery['deck'] = deckId;
     }
   
     return cardForQuery;
-  
   }
 }
 

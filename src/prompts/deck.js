@@ -29,17 +29,27 @@ import {
 // 2) Create deck in database
 // 3) Ask user if they want to create another deck immediately
 async function createDeck() {
+
   var answers = await prompt([
     {
       type: 'input',
       name: 'deckName',
       message: "You've chosen to create a deck. What do you want to name it?",
-      validate: function(value) {
-        var pass = value.trim().match(/^(?!.*:.*)^.+/); // due to how we parse decks during card adding, we can't allow ':'
-        if (pass) {
+      validate: async function(value) {
+        // due to how we parse decks during card adding, we can't allow ':'
+        var pass = value.trim().match(/^(?!.*:.*)^.+/); 
+
+        // retrieve all decks from database to test if deck name already exists
+        let decks = await deckCtrlrs.getMany({});
+        let deckNames = decks.map(deck => deck.name);
+
+        let alreadyExist = deckNames.includes(value);
+        
+        if (pass && !alreadyExist) {
           return true;
         }
-        return 'Sorry, you must give the deck a name (and the ":" character is not allowed).';
+        
+        return 'Sorry, you must give the deck a unique name (and the ":" character is not allowed).';
       }
     },
     {
@@ -194,11 +204,22 @@ async function editDeckDetails () {
       message: 'Deck name',
       default: deckName,
       validate: function(value) {
-        var pass = value.trim().match(/^(?!.*:.*)^.+/); // due to how we parse decks during card adding, we can't allow ':'
-        if (pass) {
+        // due to how we parse decks during card adding, we can't allow ':'
+        var pass = value.trim().match(/^(?!.*:.*)^.+/); 
+
+        // create list of deck names to check if new name already exists
+        let deckNames = decks.map(deck => deck.name);
+
+        let alreadyExist = false;
+        if (value != deckName && deckNames.includes(value)) {
+          alreadyExist = true;
+        };
+        
+        if (pass && !alreadyExist) {
           return true;
         }
-        return 'Sorry, you must give the deck a name (and the ":" character is not allowed).';
+        
+        return 'Sorry, you must give the deck a unique name (and the ":" character is not allowed).';
       }
     },
     {
