@@ -79,7 +79,13 @@ async function studyCards () {
   let cardsToStudy = overDueCards.sort((a, b) => a.timeAdded - b.timeAdded).slice(0, answer.limit)
 
   // quiz user with cards and retrieve the score given to each card by the user
-  await quizUserAndGetScores(cardsToStudy);
+  try {
+    await quizUserAndGetScores(cardsToStudy);
+    console.log(`\nGreat job! You studied ${numCards} card(s)!\nDon't forget to check back soon to keep studying cards scheduled for review!\n`)
+  } catch(err) {
+    console.log(err);
+  }
+  
 
   process.exit();
 }
@@ -137,7 +143,7 @@ async function quizUserAndGetScores(overDueCards) {
     try {
       await attemptUpdateProgress(card, cardMetrics.indexOf(answer.score));
     } catch(err) {
-      console.log(err);
+      throw new Error(err);
     }
   })
 }
@@ -158,7 +164,7 @@ async function attemptUpdateProgress(card, cardScore) {
   // attempt database update query
   try {
     await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
-    console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.\n`)
+    console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
   }
