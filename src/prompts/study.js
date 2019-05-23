@@ -84,6 +84,64 @@ async function studyCards () {
   process.exit();
 }
 
+// Helper function to quiz user on cards and determine user's confidence
+// with each card (ie the card's score)
+async function quizUserAndGetScores(overDueCards) {
+  // define our card metrics
+  // ie, how a user rates their confidence for each card
+  var cardMetrics = [
+    "I couldn't recall it at all.",
+    "I recalled it after thinking a bit.",
+    "I recalled it immediately!"
+  ]
+
+  // loop through all cards
+  await asyncForEach(overDueCards, async function quizUser(card) {  
+    // show the card front
+    console.log(
+      `Card front...
+      Prompt: ${card.prompt}
+      Example: ${card.promptExample}`
+    );
+
+    await prompt([
+      {
+        type: 'input',
+        name: 'flipCard',
+        message: "Press the <enter> key when you're ready to flip the card."
+      }
+    ])
+
+    // show the card back
+    console.log(
+      `Card back...
+      Target: ${card.target}
+      Example: ${card.targetExample}`
+    )
+
+    // detmine user's confidence with the card
+    let answer = await prompt([
+      {
+        type: 'list',
+        name: 'score',
+        message: 'How quickly did you recall this card?',
+        choices: [
+          cardMetrics[0],
+          cardMetrics[1],
+          cardMetrics[2]
+        ]
+      }
+    ]);
+
+    // attempt to update card progress in database
+    try {
+      await attemptUpdateProgress(card, cardMetrics.indexOf(answer.score));
+    } catch(err) {
+      console.log(err);
+    }
+  })
+}
+
 // helper function to perform database update query for card progreess
 async function attemptUpdateProgress(card, cardScore) {
   // calculate the new progress values
@@ -142,64 +200,6 @@ function getNewProgressValues(score, timesCorrect, now) {
     nextReview,
     timesCorrect
   }
-}
-
-// Helper function to quiz user on cards and determine user's confidence
-// with each card (ie the card's score)
-async function quizUserAndGetScores(overDueCards) {
-  // define our card metrics
-  // ie, how a user rates their confidence for each card
-  var cardMetrics = [
-    "I couldn't recall it at all.",
-    "I recalled it after thinking a bit.",
-    "I recalled it immediately!"
-  ]
-
-  // loop through all cards
-  await asyncForEach(overDueCards, async function quizUser(card) {  
-    // show the card front
-    console.log(
-      `Card front...
-      Prompt: ${card.prompt}
-      Example: ${card.promptExample}`
-    );
-
-    await prompt([
-      {
-        type: 'input',
-        name: 'flipCard',
-        message: "Press the <enter> key when you're ready to flip the card."
-      }
-    ])
-
-    // show the card back
-    console.log(
-      `Card back...
-      Target: ${card.target}
-      Example: ${card.targetExample}`
-    )
-
-    // detmine user's confidence with the card
-    let answer = await prompt([
-      {
-        type: 'list',
-        name: 'score',
-        message: 'How quickly did you recall this card?',
-        choices: [
-          cardMetrics[0],
-          cardMetrics[1],
-          cardMetrics[2]
-        ]
-      }
-    ]);
-
-    // attempt to update card progress in database
-    try {
-      await attemptUpdateProgress(card, cardMetrics.indexOf(answer.score));
-    } catch(err) {
-      console.log(err);
-    }
-  })
 }
 
 export { HOUR_IN_MILIS, studyCards };
