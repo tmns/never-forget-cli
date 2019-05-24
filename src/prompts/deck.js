@@ -4,8 +4,8 @@ import { registerPrompt, prompt } from 'inquirer';
 
 registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
-import deckCtrlrs from '../resources/deck/deck.controller';
-import cardCtrlrs from '../resources/card/card.controller';
+import deckCtrlrs from '../resources/deck/deck.controllers';
+import cardCtrlrs from '../resources/card/card.controllers';
 
 import { 
   isCreatingAnother,
@@ -152,7 +152,7 @@ async function deleteDecks() {
     console.log('Deck deletion cancelled.\nExiting...')
   }
 
- process.exit();    
+  process.exit();
 }
 
 // helper function to delete the selected decks (and their associated cards)

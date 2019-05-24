@@ -5,17 +5,15 @@ import path from 'path';
 import { promisify } from 'util';
 import { registerPrompt, prompt } from 'inquirer';
 
-registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
+import cardCtrlrs from '../resources/card/card.controllers';
+import deckCtrlrs from '../resources/deck/deck.controllers';
 
-import cardCtrlrs from '../resources/card/card.controller';
-import deckCtrlrs from '../resources/deck/deck.controller';
-
-import { 
+import {
   isCreatingAnother,
   getDeckProperties,
-  getSelectedDecks, 
+  getSelectedDecks,
   asyncForEach,
-  fuzzySearch 
+  fuzzySearch
 } from './shared';
 
 import {
@@ -30,14 +28,11 @@ import {
   IMPORT_CARDS_WHICH_DECK
 } from '../utils/promptMessages';
 
-import {
-  SINGLE_CHOICE,
-  MULTIPLE_CHOICE
-} from '../utils/promptTypes';
+import { SINGLE_CHOICE, MULTIPLE_CHOICE } from '../utils/promptTypes';
 
-import {  
-  HOUR_IN_MILIS 
-} from './study';
+import { HOUR_IN_MILIS } from './study';
+
+registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
 var writeFile = promisify(fs.writeFile);
 var readFile = promisify(fs.readFile);
@@ -129,11 +124,11 @@ async function addCard(_, deckId) {
     process.exit();
   }
 
-    // does user want to create another card now?
-    if (await isCreatingAnother('card')) {
-      console.log(`Adding another card to ${deckName}...`);
-      await addCard(_, deckId);
-    }
+  // does user want to create another card now?
+  if (await isCreatingAnother('card')) {
+    console.log(`Adding another card to ${deckName}...`);
+    await addCard(_, deckId);
+  }
 
   process.exit();
 }
@@ -150,13 +145,13 @@ async function deleteCards() {
   let deckMessage = DEL_CARDS_WHICH_DECK;
   let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
-  
+
   // check if user wants to exit
   if (selectedDeck.decks == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
-  
+
   // get deck properties for future use
   var [deckId] = await getDeckProperties(decks, selectedDeck);
 
@@ -177,7 +172,9 @@ async function deleteCards() {
   }
   // check if user didn't choose any cards
   if (selectedCards.cards.length == 0) {
-    console.log(`You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`);
+    console.log(
+      `You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`
+    );
     process.exit();
   }
 
@@ -186,7 +183,9 @@ async function deleteCards() {
     {
       type: 'confirm',
       name: 'deleteCards',
-      message: `You've chosen to delete the following card(s): ${selectedCards.cards.join(', ')}. This cannot be undone. Are you sure this is what you want to do?`,
+      message: `You've chosen to delete the following card(s): ${selectedCards.cards.join(
+        ', '
+      )}. This cannot be undone. Are you sure this is what you want to do?`,
       default: false
     }
   ]);
@@ -196,8 +195,8 @@ async function deleteCards() {
     // so let's first parse it out
     let cardPrompts = selectedCards.cards.map(function parsePrompt(card) {
       return card.split(' -->')[0];
-    })
-  
+    });
+
     try {
       await attemptCardsDelete(cardPrompts, cards);
       console.log('Card(s) successfully deleted.');
@@ -216,14 +215,18 @@ async function attemptCardsDelete(cardPrompts, cards) {
   // loop over each card prompt...
   await asyncForEach(cardPrompts, async function deleteCardById(cardPrompt) {
     // ...determine its mongodb ID...
-    let cardId =  cards.filter(card => card.prompt == cardPrompt).map(card => card._id)[0];
+    let cardId = cards
+      .filter(card => card.prompt == cardPrompt)
+      .map(card => card._id)[0];
     // ...and call the remove query
     try {
       await cardCtrlrs.removeOne(cardId);
-    } catch(err) {
-      throw new Error(`Error encountered while deleting card(s): ${err}.\nExiting...`);
+    } catch (err) {
+      throw new Error(
+        `Error encountered while deleting card(s): ${err}.\nExiting...`
+      );
     }
-  })
+  });
 }
 
 // Walks user through editing a card's details
@@ -231,7 +234,7 @@ async function attemptCardsDelete(cardPrompts, cards) {
 // 2) Prompt user with list of associated cards to choose from
 // 3) Prompt user with card details to change
 // 4) Update card details in database
-async function editCardDetails () {
+async function editCardDetails() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
@@ -246,7 +249,7 @@ async function editCardDetails () {
   }
 
   // get deck properties for future use
-  var [deckId] = await getDeckProperties(decks, selectedDeck)
+  var [deckId] = await getDeckProperties(decks, selectedDeck);
 
   // retrieve cards associated with deck ID from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
@@ -266,13 +269,12 @@ async function editCardDetails () {
 
   // get necessary card properties
   var [
-    cardId, 
-    cardPrompt, 
-    promptExample, 
-    cardTarget, 
+    cardId,
+    cardPrompt,
+    promptExample,
+    cardTarget,
     targetExample
   ] = getCardProperties(selectedCard, cards);
-
 
   // present user with details to edit
   var cardAnswers = await prompt([
@@ -286,7 +288,7 @@ async function editCardDetails () {
 
         // create list of card propmts to check if new prompt already exists
         let cardPrompts = cards.map(card => card.prompt);
-        
+
         let alreadyExist = false;
         if (value != cardPrompt && cardPrompts.includes(value)) {
           alreadyExist = true;
@@ -331,7 +333,7 @@ async function editCardDetails () {
   // attempt to update card in database
   try {
     await cardCtrlrs.updateOne(cardId, newCardDetails);
-    console.log('Card successfully updated!')
+    console.log('Card successfully updated!');
   } catch (err) {
     console.log(`Error encountered while updating card: ${err}.\nExiting...`);
   }
@@ -384,9 +386,9 @@ async function browseCards(_, deckId) {
   // get necessary card properties
   var [
     cardId,
-    cardPrompt, 
-    promptExample, 
-    cardTarget, 
+    cardPrompt,
+    promptExample,
+    cardTarget,
     targetExample
   ] = getCardProperties(selectedCard, cards);
 
@@ -398,7 +400,7 @@ async function browseCards(_, deckId) {
     Example: ${targetExample}\n`
   );
 
-  // determine if user wants to continue browsing the deck  
+  // determine if user wants to continue browsing the deck
   let answer = await prompt([
     {
       type: 'confirm',
@@ -411,7 +413,7 @@ async function browseCards(_, deckId) {
   if (answer.continue) {
     await browseCards(_, deckId);
   }
-  
+
   process.exit();
 }
 
@@ -420,20 +422,20 @@ async function browseCards(_, deckId) {
 // 2) Prompt user for path to export to (default is index.js's current dir)
 // 3) Retrieve cards associated with deck from db
 // 4) Attempt to write JSON.stringify'd cards to export path
-async function exportCards () {
+async function exportCards() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
   let deckMessage = EXPORT_CARDS_WHICH_DECK;
   let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
-  
+
   // check if user wants to exit
   if (selectedDeck.decks == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
-  
+
   // get deck properties for future use
   var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
 
@@ -447,10 +449,13 @@ async function exportCards () {
     }
   ]);
 
-  let exportPath = path.join(answer.exportPath, `${deckName.split(' ').join('-')}-export.json`);
+  let exportPath = path.join(
+    answer.exportPath,
+    `${deckName.split(' ').join('-')}-export.json`
+  );
   console.log(`Exporting cards from deck "${deckName}" to ${exportPath}`);
 
-  // query db for associated cards and format them 
+  // query db for associated cards and format them
   let cards = await cardCtrlrs.getMany({ deck: deckId });
   let formattedCards = cards.map(function format(card) {
     return {
@@ -458,13 +463,15 @@ async function exportCards () {
       promptExample: card.promptExample,
       target: card.target,
       targetExample: card.targetExample
-    }
-  })
+    };
+  });
 
   // attempt to write JSON.stringify'd cards to export path
   try {
     await writeFile(exportPath, JSON.stringify(formattedCards));
-    console.log(`Cards from deck "${deckName}" successfully exported to ${exportPath}`);
+    console.log(
+      `Cards from deck "${deckName}" successfully exported to ${exportPath}`
+    );
   } catch (err) {
     console.log(`Error exporting cards from deck: ${err}.\nExiting...`);
   }
@@ -475,22 +482,22 @@ async function exportCards () {
 // Walks user through importing a deck of cards
 // 1) Present user with choice of decks
 // 2) Prompt user for path to import from (default is index.js's current dir)
-// 3) Retrieve to read JSON.parse'd cards 
+// 3) Retrieve to read JSON.parse'd cards
 // 4) Create a card in the database for each card
-async function importCards () {
+async function importCards() {
   // retrieve all decks from database
   var decks = await deckCtrlrs.getMany({});
   // prompt user with deck choices and get answer
   let deckMessage = IMPORT_CARDS_WHICH_DECK;
   let deckType = SINGLE_CHOICE;
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
-  
+
   // check if user wants to exit
   if (selectedDeck.decks == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
-  
+
   // get deck properties for future use
   var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
 
@@ -534,10 +541,12 @@ async function attemptCardsImport(cards) {
   await asyncForEach(cards, async function createCard(card) {
     try {
       await cardCtrlrs.createOne(card);
-    } catch(err) {
-      throw new Error(`Error encountered while adding card(s): ${err}.\nExiting...`);
+    } catch (err) {
+      throw new Error(
+        `Error encountered while adding card(s): ${err}.\nExiting...`
+      );
     }
-  })
+  });
 }
 
 // *********** general helper functions *************
@@ -549,7 +558,7 @@ async function getSelectedCards(cards, message, type) {
   });
 
   choices.push('<-- go back to decks', '** exit **');
-  
+
   return await prompt([
     {
       type: type,
@@ -568,52 +577,43 @@ async function getSelectedCards(cards, message, type) {
 // Helper function to parse out card properties
 function getCardProperties(selectedCard, cards) {
   // parse out card prompt and use it to determine card details
- var cardPrompt = selectedCard.cards.split(' -->')[0],
-     cardDetails = cards.filter(card => card.prompt == cardPrompt)[0],
-     
-     cardId = cardDetails._id,
-     cardPrompt = cardDetails.prompt,
-     promptExample = cardDetails.promptExample,
-     cardTarget = cardDetails.target,
-     targetExample = cardDetails.targetExample;
- 
- return [
-   cardId, 
-   cardPrompt, 
-   promptExample, 
-   cardTarget, 
-   targetExample
- ];
+  var cardPrompt = selectedCard.cards.split(' -->')[0],
+    cardDetails = cards.filter(card => card.prompt == cardPrompt)[0],
+    cardId = cardDetails._id,
+    cardPrompt = cardDetails.prompt,
+    promptExample = cardDetails.promptExample,
+    cardTarget = cardDetails.target,
+    targetExample = cardDetails.targetExample;
+
+  return [cardId, cardPrompt, promptExample, cardTarget, targetExample];
 }
 
 // Takes a plain card object and prepares it for making a create query
 function prepareCardForQuery(deckId) {
   return function prepare(cardObject) {
     var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS),
-
-        cardForQuery = {
-          prompt: cardObject.prompt,
-          promptExample: cardObject.promptExample,
-          target: cardObject.target,
-          targetExample: cardObject.targetExample,
-          timeAdded: now,
-          nextReview: now,
-          timesCorrect: 0
-        };
+      cardForQuery = {
+        prompt: cardObject.prompt,
+        promptExample: cardObject.promptExample,
+        target: cardObject.target,
+        targetExample: cardObject.targetExample,
+        timeAdded: now,
+        nextReview: now,
+        timesCorrect: 0
+      };
 
     if (deckId !== null) {
       cardForQuery['deck'] = deckId;
     }
-  
+
     return cardForQuery;
-  }
+  };
 }
 
-
-export { 
-  addCard, 
-  deleteCards, 
-  editCardDetails, 
+export {
+  addCard,
+  deleteCards,
+  editCardDetails,
   browseCards,
   exportCards,
   importCards

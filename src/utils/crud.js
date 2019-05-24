@@ -1,4 +1,4 @@
-function getOne(model) {
+export function getOne(model) {
   return async function get(criteria) {
     var doc = await model
       .findOne(criteria)
@@ -13,7 +13,7 @@ function getOne(model) {
   };
 }
 
-function getMany(model) {
+export function getMany(model) {
   return async function get(criteria) {
     var docs = await model
       .find(criteria)
@@ -28,7 +28,7 @@ function getMany(model) {
   };
 }
 
-function getManySortLimit(model) {
+export function getManySortLimit(model) {
   return async function get(criteria, sort, limit) {
     var docs = await model
       .find(criteria)
@@ -45,17 +45,19 @@ function getManySortLimit(model) {
   };
 }
 
-function createOne(model) {
+export function createOne(model) {
   return async function create(details) {
     try {
       var doc = await model.create(details);
     } catch (err) {
       throw new Error(err);
     }
+
+    return doc;
   };
 }
 
-function updateOne(model) {
+export function updateOne(model) {
   return async function update(id, details) {
     var updatedDoc = await model
       .findByIdAndUpdate(id, details, { new: true })
@@ -70,7 +72,7 @@ function updateOne(model) {
   };
 }
 
-function updateMany(model) {
+export function updateMany(model) {
   return async function update(criteria, details) {
     var updatedDocs = await model
       .updateMany(criteria, details, { new: true })
@@ -85,7 +87,7 @@ function updateMany(model) {
   }
 }
 
-function removeOne(model) {
+export function removeOne(model) {
   return async function(id) {
     var removedDoc = await model.findByIdAndDelete(id);
     
@@ -97,7 +99,7 @@ function removeOne(model) {
   };
 }
 
-function removeMany(model) {
+export function removeMany(model) {
   return async function(details) {
     var removedDocs = await model.deleteMany(details);
 

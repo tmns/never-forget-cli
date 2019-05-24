@@ -8,20 +8,17 @@ module.exports = {
   },
   extends: [
     'standard',
-    'prettier',
-    'prettier/standard',
     'plugin:jest/recommended'
   ],
-  plugins: ['prettier', 'jest'],
+  plugins: ['jest'],
   rules: {
     'promise/catch-or-return': 'error',
-    'no-unexpected-multiline': false,
-    'prettier/prettier': [
-      'error',
-      {
-        'singleQuote': true,
-        'semi': true
-      }
-    ]
+    'no-unexpected-multiline': 0,
+    'jest/valid-describe': 0,
+    'semi': 0,
+    'space-before-function-paren': 0,
+    'quotes': 0,
+    'no-trailing-spaces': 0,
+    'padded-blocks': 0
   }
 }

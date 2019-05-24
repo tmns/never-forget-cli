@@ -2,8 +2,8 @@
 
 import { prompt } from 'inquirer';
 
-import deckCtrlrs from '../resources/deck/deck.controller';
-import cardCtrls from '../resources/card/card.controller';
+import deckCtrlrs from '../resources/deck/deck.controllers';
+import cardCtrls from '../resources/card/card.controllers';
 
 import { STUDY_CARDS_WHICH_DECK } from '../utils/promptMessages';
 import { SINGLE_CHOICE } from '../utils/promptTypes';

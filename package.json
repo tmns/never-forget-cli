@@ -7,6 +7,7 @@
   "license": "WTFPL",
   "scripts": {
     "build": "babel src --out-dir dist",
+    "test": "NODE_ENV=testing jest --forceExit --detectOpenHandles  --silent",
     "dev": "nodemon --exec yarn restart",
     "restart": "rimraf dist && yarn build && yarn start",
     "start": "node dist/index.js"
@@ -21,21 +22,20 @@
     "babel-eslint": "^10.0.1",
     "babel-jest": "^24.8.0",
     "cross-env": "^5.2.0",
+    "cuid": "^2.1.6",
     "eslint": "^5.16.0",
-    "eslint-config-prettier": "^4.3.0",
     "eslint-config-standard": "^12.0.0",
     "eslint-friendly-formatter": "^4.0.1",
     "eslint-loader": "^2.1.2",
     "eslint-plugin-import": "^2.17.2",
     "eslint-plugin-jest": "^22.5.1",
     "eslint-plugin-node": "^9.0.1",
-    "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-promise": "^4.1.1",
     "eslint-plugin-standard": "^4.0.0",
     "jest": "^24.8.0",
+    "lodash": "^4.17.11",
     "mock-req-res": "^1.1.0",
     "nodemon": "^1.19.0",
-    "prettier": "^1.17.1",
     "rimraf": "^2.6.3",
     "supertest": "^4.0.2"
   },
@@ -46,5 +46,15 @@
     "inquirer-autocomplete-prompt": "^1.0.1",
     "inquirer-checkbox-plus-prompt": "^1.0.1",
     "mongoose": "^5.5.9"
+  },
+  "jest": {
+    "verbose": true,
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "./test-db-setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "dist/"
+    ]
   }
 }
