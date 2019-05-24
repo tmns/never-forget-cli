@@ -22,6 +22,7 @@ module.exports = {
     'padded-blocks': 0,
     'one-var': 0,
     'eqeqeq': 0,
-    'eol-last': 0
+    'eol-last': 0,
+    'brace-style': 0
   }
 }

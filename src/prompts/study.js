@@ -42,7 +42,7 @@ async function studyCards () {
 
   // get cards scheduled for review
   let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
-  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lte: now }});
+  var overDueCards = await cardCtrls.getMany({ deck: deckId, nextReview: { $lte: now } });
 
   var numCards = Object.keys(overDueCards).length;
   // if there are no overdue cards, prompt user if they want to choose a different deck to study
@@ -82,11 +82,10 @@ async function studyCards () {
   try {
     await quizUserAndGetScores(cardsToStudy);
     console.log(`\nGreat job! You studied ${numCards} card(s)!\nDon't forget to check back soon to keep studying cards scheduled for review!\n`)
-  } catch(err) {
+  } catch (err) {
     console.log(err);
   }
   
-
   process.exit();
 }
 
@@ -142,7 +141,7 @@ async function quizUserAndGetScores(overDueCards) {
     // attempt to update card progress in database
     try {
       await attemptUpdateProgress(card, cardMetrics.indexOf(answer.score));
-    } catch(err) {
+    } catch (err) {
       throw new Error(err);
     }
   })
@@ -190,21 +189,21 @@ function getNewProgressValues(score, timesCorrect, now) {
   if (knewImmediately) {
     if (timesCorrect < intervals.length) {
       nextReview = now + intervals[timesCorrect];
-    }
+    } 
     else if (timesCorrect >= intervals.length) {
       nextReview = now + (intervals.slice(-1) * ((timesCorrect + 1) - intervals.length));
     }
   }
 
   // determine new timesCorrect, if less than 0, normalize to 0
-  var timesCorrect = timesCorrect + scoreToIntervalChange[score];
-  if (timesCorrect < 0) {
-    timesCorrect = 0;
+  let newTimesCorrect = timesCorrect + scoreToIntervalChange[score];
+  if (newTimesCorrect < 0) {
+    newTimesCorrect = 0;
   }
   
   return {
     nextReview,
-    timesCorrect
+    newTimesCorrect
   }
 }
 

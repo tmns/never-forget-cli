@@ -34,7 +34,6 @@
     "eslint-plugin-standard": "^4.0.0",
     "jest": "^24.8.0",
     "lodash": "^4.17.11",
-    "mock-req-res": "^1.1.0",
     "nodemon": "^1.19.0",
     "rimraf": "^2.6.3",
     "supertest": "^4.0.2"

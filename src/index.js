@@ -111,7 +111,7 @@ async function start () {
   if (!process.argv[2].match(/^(c|configure|-h|--help)$/)) {
     try {
       await connectAppToDB();
-    } catch(err) {
+    } catch (err) {
       console.log(err);
       process.exit();
     }

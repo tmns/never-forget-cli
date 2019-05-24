@@ -161,14 +161,14 @@ async function attemptDeckDelete(deckIds) {
   await asyncForEach(deckIds, async function deleteDeck(deckId) {
     // ... remove cards
     try {
-      await cardCtrlrs.removeMany({deck: deckId});
-    } catch(err) {
+      await cardCtrlrs.removeMany({ deck: deckId });
+    } catch (err) {
       throw new Error(`Error encountered while deleting deck's cards: ${err}.\nExiting...`);
     }
     // ... remove decks
     try {
       await deckCtrlrs.removeOne(deckId);
-    } catch(err) {
+    } catch (err) {
       throw new Error(`Error encountered while deleting deck(s): ${err}.\nExiting...`);
     }
   })
