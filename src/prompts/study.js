@@ -9,6 +9,7 @@ import { STUDY_CARDS_WHICH_DECK, EXIT } from '../utils/strings';
 import { SINGLE_CHOICE } from '../utils/promptTypes';
 
 import { 
+  promptConfirm,
   getSelectedDecks,
   getDeckProps,
   asyncForEach
@@ -47,16 +48,11 @@ async function studyCards () {
   var numCards = Object.keys(overDueCards).length;
   // if there are no overdue cards, prompt user if they want to choose a different deck to study
   if (numCards == 0) {
-    let answer = await prompt([
-      {
-        type: 'confirm',
-        name: 'chooseOther',
-        message: "There are no cards in this deck scheduled for review. Would you like to study a different deck?",
-        default: true
-      }
-    ]);
+    let message = "There are no cards in this deck scheduled for review. Would you like to study a different deck?";
+    let defaultVal = true;
+    let chooseOther = await promptConfirm(message, defaultVal);
 
-    if (answer.chooseOther) {
+    if (chooseOther) {
       await studyCards();
     } else {
       console.log('Exiting...');
