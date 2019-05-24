@@ -11,7 +11,7 @@ import deckCtrlrs from '../resources/deck/deck.controllers';
 import {
   isCreatingAnother,
   promptConfirm,
-  getDeckProperties,
+  getDeckProps,
   getSelectedDecks,
   asyncForEach,
   fuzzySearch
@@ -64,62 +64,21 @@ async function addCard(_, deckId) {
     }
 
     // get deck properties for future use
-    [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
-    console.log(
-      '\nNow you get to create your card! Fill in the following details.\n'
-    );
+    [deckId, deckName] = await getDeckProps(decks, selectedDeck);
+    console.log('Now you get to create your card! Fill in the following details.');
   }
 
+  // retrieve all cards from database to test if card prompt already exists
+  let cards = await cardCtrlrs.getMany({ deck: deckId });
+
   // now lets get the details for the new card
-  var cardAnswers = await prompt([
-    {
-      type: 'input',
-      name: 'prompt',
-      message: 'Prompt (you can think of this as the front of the card)',
-      validate: async function(value) {
-        var pass = value.trim().match(/^.+/);
-
-        // retrieve all cards from database to test if card prompt already exists
-        let cards = await cardCtrlrs.getMany({ deck: deckId });
-        let cardPrompts = cards.map(card => card.prompt);
-
-        let alreadyExist = cardPrompts.includes(value);
-
-        if (pass && !alreadyExist) {
-          return true;
-        }
-
-        return 'Sorry, you must enter a unique prompt for the card.';
-      }
-    },
-    {
-      type: 'input',
-      name: 'promptExample',
-      message:
-        "A second detail for the prompt (eg an example sentence using the prompt's value, optional)"
-    },
-    {
-      type: 'input',
-      name: 'target',
-      message: 'Target (you can think of this as the back of the card)',
-      validate: function(value) {
-        var pass = value.trim().match(/^.+/);
-        if (pass) {
-          return true;
-        }
-        return 'Sorry, you must enter a target for the card.';
-      }
-    },
-    {
-      type: 'input',
-      name: 'targetExample',
-      message: 'A second detail for the target (optional)'
-    }
-  ]);
+  var cardAnswers = await promptAddCard(cards);
 
   // create the card details object we'll use for the query
-  let cardForQuery = prepareCardForQuery(deckId)(cardAnswers);
+  let isAdding = true;
+  let cardForQuery = prepareCardForQuery(deckId)(cardAnswers, isAdding);
 
+  // attempt to create the card in db
   try {
     await cardCtrlrs.createOne(cardForQuery);
     console.log(`Card successfully added. Now you can (s)tudy it!`);
@@ -157,7 +116,7 @@ async function deleteCards() {
   }
 
   // get deck properties for future use
-  var [deckId] = await getDeckProperties(decks, selectedDeck);
+  var [deckId] = await getDeckProps(decks, selectedDeck);
 
   // retrieve all associated cards from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
@@ -176,9 +135,7 @@ async function deleteCards() {
   }
   // check if user didn't choose any cards
   if (selectedCards.length == 0) {
-    console.log(
-      `You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`
-    );
+    console.log(`You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`);
     process.exit();
   }
 
@@ -248,7 +205,7 @@ async function editCardDetails() {
   }
 
   // get deck properties for future use
-  var [deckId] = await getDeckProperties(decks, selectedDeck);
+  var [deckId] = await getDeckProps(decks, selectedDeck);
 
   // retrieve cards associated with deck ID from database
   var cards = await cardCtrlrs.getMany({ deck: deckId });
@@ -267,71 +224,17 @@ async function editCardDetails() {
   }
 
   // get necessary card properties
-  var [
-    cardId,
-    cardPrompt,
-    promptExample,
-    cardTarget,
-    targetExample
-  ] = getCardProperties(selectedCard, cards);
+  let cardProps = getCardProps(selectedCard, cards);
 
   // present user with details to edit
-  var cardAnswers = await prompt([
-    {
-      type: 'input',
-      name: 'prompt',
-      message: 'Card prompt',
-      default: cardPrompt,
-      validate: function(value) {
-        var pass = value.trim().match(/^.+/);
-
-        // create list of card propmts to check if new prompt already exists
-        let cardPrompts = cards.map(card => card.prompt);
-
-        let alreadyExist = false;
-        if (value != cardPrompt && cardPrompts.includes(value)) {
-          alreadyExist = true;
-        }
-
-        if (pass && !alreadyExist) {
-          return true;
-        }
-
-        return 'Sorry, you must enter a prompt for the card.';
-      }
-    },
-    {
-      type: 'input',
-      name: 'promptExample',
-      message: 'Prompt example (optional)',
-      default: promptExample
-    },
-    {
-      type: 'input',
-      name: 'target',
-      message: 'Card target',
-      default: cardTarget,
-      validate: function(value) {
-        var pass = value.trim().match(/^.+/);
-        if (pass) {
-          return true;
-        }
-        return 'Sorry, you must enter a target for the card.';
-      }
-    },
-    {
-      type: 'input',
-      name: 'targetExample',
-      default: targetExample
-    }
-  ]);
+  let cardAnswers = await promptEditCard(cardProps, cards);
 
   // create our object we will use to update the card in the database
   let newCardDetails = prepareCardForQuery(null)(cardAnswers);
 
   // attempt to update card in database
   try {
-    await cardCtrlrs.updateOne(cardId, newCardDetails);
+    await cardCtrlrs.updateOne(cardProps.id, newCardDetails);
     console.log('Card successfully updated!');
   } catch (err) {
     console.log(`Error encountered while updating card: ${err}.\nExiting...`);
@@ -364,7 +267,7 @@ async function browseCards(_, deckId) {
     }
 
     // get deck properties for future use
-    [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+    [deckId, deckName] = await getDeckProps(decks, selectedDeck);
   }
 
   // retrieve all associated cards from database
@@ -384,20 +287,14 @@ async function browseCards(_, deckId) {
   }
 
   // get necessary card properties
-  var [
-    ,
-    cardPrompt,
-    promptExample,
-    cardTarget,
-    targetExample
-  ] = getCardProperties(selectedCard, cards);
+  var cardProps = getCardProps(selectedCard, cards);
 
   console.log(
     `\nCard details...
-    Prompt: ${cardPrompt}
-    Example: ${promptExample}
-    Target: ${cardTarget}
-    Example: ${targetExample}\n`
+    Prompt: ${cardProps.prompt}
+    Example: ${cardProps.promptExample}
+    Target: ${cardProps.target}
+    Example: ${cardProps.targetExample}\n`
   );
 
   // determine if user wants to continue browsing the deck
@@ -432,7 +329,7 @@ async function exportCards() {
   }
 
   // get deck properties for future use
-  var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+  var [deckId, deckName] = await getDeckProps(decks, selectedDeck);
 
   // determine export path
   var answer = await prompt([
@@ -494,7 +391,7 @@ async function importCards() {
   }
 
   // get deck properties for future use
-  var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+  var [deckId, deckName] = await getDeckProps(decks, selectedDeck);
 
   // determine import path
   var answer = await prompt([
@@ -537,14 +434,113 @@ async function attemptCardsImport(cards) {
     try {
       await cardCtrlrs.createOne(card);
     } catch (err) {
-      throw new Error(
-        `Error encountered while adding card(s): ${err}.\nExiting...`
-      );
+      throw new Error(`Error encountered while adding card(s): ${err}.\nExiting...`);
     }
   });
 }
 
 // *********** general helper functions *************
+
+// prompts user for card prompt, prompt example, target, target example
+async function promptAddCard(cards) {
+  var answers = await prompt([
+    {
+      type: 'input',
+      name: 'prompt',
+      message: 'Prompt (you can think of this as the front of the card)',
+      validate: validatePrompt(null, cards)
+    },
+    {
+      type: 'input',
+      name: 'promptExample',
+      message:
+        "A second detail for the prompt (eg an example sentence using the prompt's value, optional)"
+    },
+    {
+      type: 'input',
+      name: 'target',
+      message: 'Target (you can think of this as the back of the card)',
+      validate: validateTarget
+    },
+    {
+      type: 'input',
+      name: 'targetExample',
+      message: 'A second detail for the target (optional)'
+    }
+  ]);
+
+  return answers;
+}
+
+async function promptEditCard(cardProps, cards) {
+  var answers = await prompt([
+    {
+      type: 'input',
+      name: 'prompt',
+      message: 'Card prompt',
+      default: cardProps.prompt,
+      validate: validatePrompt(cardProps.prompt, cards)
+    },
+    {
+      type: 'input',
+      name: 'promptExample',
+      message: 'Prompt example (optional)',
+      default: cardProps.promptExample
+    },
+    {
+      type: 'input',
+      name: 'target',
+      message: 'Card target',
+      default: cardProps.target,
+      validate: validateTarget
+    },
+    {
+      type: 'input',
+      name: 'targetExample',
+      default: cardProps.targetExample
+    }
+  ]);
+
+  return answers;
+}
+
+// validate desired card prompt for creating and editing
+function validatePrompt(cardPrompt, cards) {
+  return async function validate(value) {
+    var pass = value.trim().match(/^.+/);
+
+    // create list of card prompts to check if prompt already exists
+    let cardPrompts = cards.map(card => card.prompt);
+
+    // check if value already exists
+    // ie, if a card already exists with the desired prompt
+    // first we assume it doesn't...
+    var alreadyExist = false;
+    // ... if cardPrompt was not passed, we're creating
+    // and thus only check if value already exists
+    if (!cardPrompt) {
+      alreadyExist = cardPrompts.includes(value);
+    } else {
+      // we're editing and thus also check if value is current card prompt
+      alreadyExist = cardPrompts.includes(value) && value != cardPrompt;
+    }
+
+    if (pass && !alreadyExist) {
+      return true;
+    }
+
+    return 'Sorry, you must enter a unique prompt for the card.';
+  }  
+}
+
+// validate desired card target
+function validateTarget(value) {
+  var pass = value.trim().match(/^.+/);
+  if (pass) {
+    return true;
+  }
+  return 'Sorry, you must enter a target for the card.';
+}
 
 // prompt user with list of available cards and returns selected card
 async function getSelectedCards(cards, message, type) {
@@ -572,31 +568,36 @@ async function getSelectedCards(cards, message, type) {
 }
 
 // Helper function to parse out card properties
-function getCardProperties(selectedCard, cards) {
+function getCardProps(selectedCard, cards) {
   // parse out card prompt and use it to determine card details
-  var cardPrompt = selectedCard.split(' -->')[0],
-    cardDetails = cards.filter(card => card.prompt == cardPrompt)[0],
-    cardId = cardDetails._id,
-    promptExample = cardDetails.promptExample,
-    cardTarget = cardDetails.target,
-    targetExample = cardDetails.targetExample;
+  var prompt = selectedCard.split(' -->')[0],
+    details = cards.filter(card => card.prompt == prompt)[0];
 
-  return [cardId, cardPrompt, promptExample, cardTarget, targetExample];
+  return {
+    prompt,
+    promptExample: details.promptExample,
+    target: details.target,
+    targetExample: details.targetExample,
+    id: details._id
+  }
 }
 
-// Takes a plain card object and prepares it for making a create query
+// Takes a plain card object and prepares it for making a query
 function prepareCardForQuery(deckId) {
-  return function prepare(cardObject) {
+  return function prepare(cardObject, isAdding = false) {
     var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS),
       cardForQuery = {
-        prompt: cardObject.prompt,
-        promptExample: cardObject.promptExample,
-        target: cardObject.target,
-        targetExample: cardObject.targetExample,
-        timeAdded: now,
-        nextReview: now,
-        timesCorrect: 0
+        prompt: cardObject.prompt.trim(),
+        promptExample: cardObject.promptExample.trim(),
+        target: cardObject.target.trim(),
+        targetExample: cardObject.targetExample.trim(),
       };
+
+    if (isAdding) {
+      cardForQuery['timeAdded'] = now;
+      cardForQuery['nextReview'] = now;
+      cardForQuery['timesCorrect'] = 0;
+    }
 
     if (deckId !== null) {
       cardForQuery['deck'] = deckId;

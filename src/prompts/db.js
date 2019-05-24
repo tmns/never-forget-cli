@@ -5,6 +5,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { prompt } from 'inquirer';
 
+import { CANCEL } from '../utils/strings';
 import { defaultDbUrl, dbUrlPath, attemptConnection } from '../utils/db';
 
 var writeFile = promisify(fs.writeFile);
@@ -23,12 +24,12 @@ async function configureDb() {
       choices: [
         `Use the default URL (${defaultDbUrl})`, 
         'Use a different URL',
-        '** cancel **'
+        CANCEL
       ]
     }
   ]);
 
-  if (answer.dbOption == '** cancel **') {
+  if (answer.dbOption == CANCEL) {
     process.exit();
   }
 

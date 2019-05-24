@@ -3,6 +3,8 @@
 import { registerPrompt, prompt } from 'inquirer';
 import fuzzy from 'fuzzy';
 
+import { EXIT } from '../utils/strings'
+
 registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
 // prompts the user if they wish to create another item immediately
@@ -38,7 +40,7 @@ function deckToChoice(deck) {
 }
 
 // Helper function to return a deck's ID, name, and description property
-function getDeckProperties(decks, selectedDeck) {
+function getDeckProps(decks, selectedDeck) {
   // parse out the deck name and description...
   let deckName = selectedDeck;
   let deckDescription = '';
@@ -58,7 +60,7 @@ async function getSelectedDecks(decks, message, type) {
 
   var choices = decks.map(deckToChoice);
 
-  choices.push('** exit **');
+  choices.push(EXIT);
 
   var selectedDecks = await prompt([
     {
@@ -101,7 +103,7 @@ function fuzzySearch(answersSoFar, input, choices) {
 export { 
   isCreatingAnother,
   promptConfirm,
-  getDeckProperties,
+  getDeckProps,
   getSelectedDecks, 
   asyncForEach,
   fuzzySearch

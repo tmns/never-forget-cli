@@ -10,12 +10,13 @@ import {
   promptConfirm,
   asyncForEach,
   getSelectedDecks,
-  getDeckProperties
+  getDeckProps
 } from './shared';
 
 import { 
   DEL_DECK_WHICH_DECK,
-  EDIT_DECK_WHICH_DECK 
+  EDIT_DECK_WHICH_DECK,
+  EXIT
 } from '../utils/strings';
 
 import {
@@ -39,11 +40,7 @@ async function createDeck() {
   // attempt to create deck in db
   try {
     await deckCtrlrs.createOne(details);
-    console.log(
-      `Deck "${
-        details.name
-      }" successfully created. Now you can (i)mport or (a)dd some cards to it!`
-    );
+    console.log(`Deck "${details.name}" successfully created. Now you can (i)mport or (a)dd some cards to it!`);
   } catch (err) {
     console.log(`Error encountered while creating deck: ${err}.\nExiting...`);
     process.exit();
@@ -71,7 +68,7 @@ async function deleteDecks() {
   let selectedDecks = await getSelectedDecks(decks, deckMessage, type);
 
   // check if user wants to exit
-  if (selectedDecks.includes('** exit **')) {
+  if (selectedDecks.includes(EXIT)) {
     console.log('Exiting...');
     process.exit();
   }
@@ -150,13 +147,13 @@ async function editDeckDetails () {
   var selectedDeck = await getSelectedDecks(decks, message, type);
 
   // check if user wants to exit
-  if (selectedDeck == '** exit **') {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
   
   // get deck properties for future use  
-  var [deckId, deckName, deckDescription] = await getDeckProperties(decks, selectedDeck);
+  var [deckId, deckName, deckDescription] = await getDeckProps(decks, selectedDeck);
 
   console.log(`You've chosen to edit the details of ${deckName}...`);
 
@@ -174,7 +171,7 @@ async function editDeckDetails () {
   process.exit();
 }
 
-// ******************* HELPER FUNCTIONS *******************
+// ******************* GENERAL HELPER FUNCTIONS *******************
 
 // prompts user for deck name and description
 async function promptCreateDeck(decks) {
@@ -183,13 +180,13 @@ async function promptCreateDeck(decks) {
       type: 'input',
       name: 'deckName',
       message: "You've chosen to create a deck. What do you want to name it?",
-      validate: validateDeckName(null, decks)
+      validate: validateName(null, decks)
     },
     {
       type: 'input',
       name: 'deckDescription',
       message: 'Provide a description for your new deck (optional)',
-      validate: validateDeckDescription
+      validate: validateDescription
     }
   ]);
 
@@ -207,14 +204,14 @@ async function promptEditDeck(deckName, deckDescription, decks) {
       name: 'deckName',
       message: 'Deck name',
       default: deckName,
-      validate: validateDeckName(deckName, decks)
+      validate: validateName(deckName, decks)
     },
     {
       type: 'input',
       name: 'deckDescription',
       message: 'Deck description (optional)',
       default: deckDescription,
-      validate: validateDeckDescription
+      validate: validateDescription
     }
   ]);
 
@@ -225,7 +222,7 @@ async function promptEditDeck(deckName, deckDescription, decks) {
 }
 
 // validates desired deck name
-function validateDeckName(deckName, decks) {
+function validateName(deckName, decks) {
   return async function validate(value) {
     // due to how we parse decks during card adding, we can't allow ':'
     var pass = value.trim().match(/^(?!.*:.*)^.+/);
@@ -237,12 +234,12 @@ function validateDeckName(deckName, decks) {
     // ie, if a deck already exists with the desired name
     // first we assume it doesn't...
     var alreadyExist = false;
-    // ...if deckName was not passed, this means we're creating and simply
-    // check if value already exists
+    // ...if deckName was not passed,  we're creating 
+    // and thus simply check if value already exists
     if (!deckName) {
       alreadyExist = deckNames.includes(value);
     } else {
-      // we're editing a card and so we must also check if the value is the current deckName
+      // we're editing and thus also check if value is current deckName
       alreadyExist = deckNames.includes(value) && value != deckName;
     }
 
@@ -255,7 +252,7 @@ function validateDeckName(deckName, decks) {
 }
 
 // validates desired deck description
-function validateDeckDescription(value) {
+function validateDescription(value) {
   var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
   if (pass) {
     return true;

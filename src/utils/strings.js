@@ -16,9 +16,10 @@ const EDIT_DECK_WHICH_DECK = "You've chosen to edit a deck's details. Which deck
 // messages for study tasks
 const STUDY_CARDS_WHICH_DECK = "You've chosen to study some cards. Which deck do you want to study with?";
 
-// exit and go back options
+// navigation options
 const EXIT = '** exit **';
 const GO_BACK_TO_DECKS = '<-- go back to decks';
+const CANCEL = '** cancel **';
 
 export {
   ADD_CARDS_WHICH_DECK,
@@ -34,5 +35,6 @@ export {
   EDIT_DECK_WHICH_DECK,
   STUDY_CARDS_WHICH_DECK,
   EXIT,
-  GO_BACK_TO_DECKS
+  GO_BACK_TO_DECKS,
+  CANCEL
 }
