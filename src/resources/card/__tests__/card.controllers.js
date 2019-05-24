@@ -7,9 +7,7 @@ describe('card controllers', () => {
       'removeMany',
       'removeOne',
       'updateOne',
-      'updateMany',
       'getMany',
-      'getManySortLimit',
       'getOne',
       'createOne'
     ];

@@ -21,6 +21,7 @@ module.exports = {
     'no-trailing-spaces': 0,
     'padded-blocks': 0,
     'one-var': 0,
-    'eqeqeq': 0
+    'eqeqeq': 0,
+    'eol-last': 0
   }
 }

@@ -28,23 +28,6 @@ export function getMany(model) {
   };
 }
 
-export function getManySortLimit(model) {
-  return async function get(criteria, sort, limit) {
-    var docs = await model
-      .find(criteria)
-      .sort(sort)
-      .limit(limit)
-      .lean()
-      .exec();
-
-    if (!docs) {
-      throw new Error('Nothing found');
-    }
-
-    return docs;
-  };
-}
-
 export function createOne(model) {
   return async function create(details) {
     try {
@@ -72,21 +55,6 @@ export function updateOne(model) {
   };
 }
 
-export function updateMany(model) {
-  return async function update(criteria, details) {
-    var updatedDocs = await model
-      .updateMany(criteria, details, { new: true })
-      .lean()
-      .exec();
-
-    if (!updatedDocs) {
-      throw new Error('Noting Updated');
-    }
-
-    return updatedDocs;
-  }
-}
-
 export function removeOne(model) {
   return async function(id) {
     var removedDoc = await model.findByIdAndDelete(id);
@@ -100,8 +68,8 @@ export function removeOne(model) {
 }
 
 export function removeMany(model) {
-  return async function(details) {
-    var removedDocs = await model.deleteMany(details);
+  return async function(criteria) {
+    var removedDocs = await model.deleteMany(criteria);
 
     if (!removedDocs) {
       throw new Error('Nothing deleted');
@@ -115,9 +83,7 @@ export const crudControllers = model => ({
   removeMany: removeMany(model),
   removeOne: removeOne(model),
   updateOne: updateOne(model),
-  updateMany: updateMany(model),
   getMany: getMany(model),
-  getManySortLimit: getManySortLimit(model),
   getOne: getOne(model),
   createOne: createOne(model)
 });
