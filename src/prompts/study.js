@@ -5,12 +5,12 @@ import { prompt } from 'inquirer';
 import deckCtrlrs from '../resources/deck/deck.controllers';
 import cardCtrls from '../resources/card/card.controllers';
 
-import { STUDY_CARDS_WHICH_DECK } from '../utils/strings';
+import { STUDY_CARDS_WHICH_DECK, EXIT } from '../utils/strings';
 import { SINGLE_CHOICE } from '../utils/promptTypes';
 
 import { 
   getSelectedDecks,
-  getDeckProperties,
+  getDeckProps,
   asyncForEach
 } from './shared';
 
@@ -32,13 +32,13 @@ async function studyCards () {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck.decks == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
   
   // get deck properties for future use
-  var [deckId] = await getDeckProperties(decks, selectedDeck);
+  var [deckId] = await getDeckProps(decks, selectedDeck);
 
   // get cards scheduled for review
   let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
@@ -151,7 +151,7 @@ async function quizUserAndGetScores(overDueCards) {
 async function attemptUpdateProgress(card, cardScore) {
   // calculate the new progress values
   let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
-  let { nextReview, timesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, now);
+  let { nextReview, newTimesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, now);
 
   // construct next time for review string
   let nextTime = nextReview - now;
@@ -162,7 +162,7 @@ async function attemptUpdateProgress(card, cardScore) {
 
   // attempt database update query
   try {
-    await cardCtrls.updateOne(card._id, { nextReview, timesCorrect });
+    await cardCtrls.updateOne(card._id, { nextReview, newTimesCorrect });
     console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
