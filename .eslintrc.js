@@ -19,6 +19,8 @@ module.exports = {
     'space-before-function-paren': 0,
     'quotes': 0,
     'no-trailing-spaces': 0,
-    'padded-blocks': 0
+    'padded-blocks': 0,
+    'one-var': 0,
+    'eqeqeq': 0
   }
 }

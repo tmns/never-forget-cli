@@ -79,11 +79,11 @@ export function updateMany(model) {
       .lean()
       .exec();
 
-      if (!updatedDocs) {
-        throw new Error('Noting Updated');
-      }
+    if (!updatedDocs) {
+      throw new Error('Noting Updated');
+    }
 
-      return updatedDocs;
+    return updatedDocs;
   }
 }
 

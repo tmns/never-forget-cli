@@ -2,8 +2,6 @@
 
 import { registerPrompt, prompt } from 'inquirer';
 
-registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
-
 import deckCtrlrs from '../resources/deck/deck.controllers';
 import cardCtrlrs from '../resources/card/card.controllers';
 
@@ -23,6 +21,8 @@ import {
   SINGLE_CHOICE,
   MULTIPLE_CHOICE
 } from '../utils/promptTypes';
+
+registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 
 // Walks the user through creating a deck of flash cards
 // 1) Ask user for deck name and description
@@ -105,19 +105,19 @@ async function deleteDecks() {
   let selectedDecks = await getSelectedDecks(decks, deckMessage, type);
 
   // check if user wants to exit
-  if (selectedDecks.decks.includes('** exit **')) {
+  if (selectedDecks.includes('** exit **')) {
     console.log('Exiting...');
     process.exit();
   }
 
   // check if user didn't choose any decks
-  if (selectedDecks.decks.length == 0) {
+  if (selectedDecks.length == 0) {
     console.log(`You didn't choose a deck. If this was a mistake, next time make sure you use the <space> key to select a deck.\nExiting...`);
     process.exit();
   }
 
   // parse deck names
-  let deckNames = selectedDecks.decks.map(function parseDeckName(deck) {
+  let deckNames = selectedDecks.map(function parseDeckName(deck) {
     if (deck.includes(':')) {
       return deck.split(':')[0];
     }
@@ -187,7 +187,7 @@ async function editDeckDetails () {
   var selectedDeck = await getSelectedDecks(decks, message, type);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
@@ -244,7 +244,7 @@ async function editDeckDetails () {
 
   try {
     await deckCtrlrs.updateOne(deckId, details);
-    console.log(`Deck ${deckName} successfully updated.`);
+    console.log(`Deck "${deckName}" successfully updated.`);
   } catch (err) {
     console.log(`Error encountered while updating deck: ${err}.\nExiting`)
   }

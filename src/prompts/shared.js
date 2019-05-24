@@ -32,11 +32,11 @@ function decksToChoices(deck) {
 // Helper function to return a deck's ID, name, and description property
 function getDeckProperties(decks, selectedDeck) {
   // parse out the deck name and description...
-  let deckName = selectedDeck.decks;
+  let deckName = selectedDeck;
   let deckDescription = '';
   if (deckName.includes(':')) {
-    deckName = selectedDeck.decks.split(':')[0];
-    deckDescription = selectedDeck.decks.split(':')[1];
+    deckName = selectedDeck.split(':')[0];
+    deckDescription = selectedDeck.split(':')[1].trim();
   }
 
   // ...and return the deck ID to be used for the create query
@@ -52,7 +52,7 @@ async function getSelectedDecks(decks, message, type) {
 
   choices.push('** exit **');
 
-  return await prompt([
+  var selectedDecks = await prompt([
     {
       type: type,
       name: 'decks',
@@ -65,6 +65,8 @@ async function getSelectedDecks(decks, message, type) {
       }
     }
   ]);
+
+  return selectedDecks.decks;
 }
 
 // async version of forEAch

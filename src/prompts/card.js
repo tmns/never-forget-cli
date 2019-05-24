@@ -46,6 +46,7 @@ async function addCard(_, deckId) {
   // if this is the first card being added for a particular session
   // of card adding, we must retrieve the deckID manually
   if (!deckId) {
+    var deckName;
     // retrieve all decks from database
     var decks = await deckCtrlrs.getMany({});
     // prompt user with deck choices and get answer
@@ -60,9 +61,9 @@ async function addCard(_, deckId) {
     }
 
     // get deck properties for future use
-    var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+    [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
     console.log(
-      'Now you get to create your card! Fill in the following details.'
+      '\nNow you get to create your card! Fill in the following details.\n'
     );
   }
 
@@ -163,15 +164,15 @@ async function deleteCards() {
   var selectedCards = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCards.cards.includes('<-- go back to decks')) {
+  if (selectedCards.includes('<-- go back to decks')) {
     await deleteCards();
   }
-  if (selectedCards.cards.includes('** exit **')) {
+  if (selectedCards.includes('** exit **')) {
     console.log('Exiting...');
     process.exit();
   }
   // check if user didn't choose any cards
-  if (selectedCards.cards.length == 0) {
+  if (selectedCards.length == 0) {
     console.log(
       `You didn't choose a card. If this was a mistake, next time make sure you use the <space> key to select a card.\nExiting...`
     );
@@ -183,7 +184,7 @@ async function deleteCards() {
     {
       type: 'confirm',
       name: 'deleteCards',
-      message: `You've chosen to delete the following card(s): ${selectedCards.cards.join(
+      message: `You've chosen to delete the following card(s): ${selectedCards.join(
         ', '
       )}. This cannot be undone. Are you sure this is what you want to do?`,
       default: false
@@ -193,7 +194,7 @@ async function deleteCards() {
   if (isSure.deleteCards) {
     // we'll determine our card IDs based on their prompt values
     // so let's first parse it out
-    let cardPrompts = selectedCards.cards.map(function parsePrompt(card) {
+    let cardPrompts = selectedCards.map(function parsePrompt(card) {
       return card.split(' -->')[0];
     });
 
@@ -259,10 +260,10 @@ async function editCardDetails() {
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCard.cards == '<-- go back to decks') {
+  if (selectedCard == '<-- go back to decks') {
     await editCardDetails();
   }
-  if (selectedCard.cards == '** exit **') {
+  if (selectedCard == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
@@ -350,6 +351,7 @@ async function browseCards(_, deckId) {
   // if this is the first card being displayed for a particular session
   // of card browsing, we must retrieve the deckID manually
   if (!deckId) {
+    var deckName;
     // retrieve all decks from database
     var decks = await deckCtrlrs.getMany({});
     // prompt user with deck choices and get answer
@@ -364,7 +366,7 @@ async function browseCards(_, deckId) {
     }
 
     // get deck properties for future use
-    var [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
+    [deckId, deckName] = await getDeckProperties(decks, selectedDeck);
   }
 
   // retrieve all associated cards from database
@@ -375,17 +377,17 @@ async function browseCards(_, deckId) {
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCard.cards == '<-- go back to decks') {
+  if (selectedCard == '<-- go back to decks') {
     await browseCards();
   }
-  if (selectedCard.cards == '** exit **') {
+  if (selectedCard == '** exit **') {
     console.log('Exiting...');
     process.exit();
   }
 
   // get necessary card properties
   var [
-    cardId,
+    ,
     cardPrompt,
     promptExample,
     cardTarget,
@@ -559,7 +561,7 @@ async function getSelectedCards(cards, message, type) {
 
   choices.push('<-- go back to decks', '** exit **');
 
-  return await prompt([
+  var selectedCards = await prompt([
     {
       type: type,
       name: 'cards',
@@ -572,15 +574,16 @@ async function getSelectedCards(cards, message, type) {
       }
     }
   ]);
+
+  return selectedCards.cards;
 }
 
 // Helper function to parse out card properties
 function getCardProperties(selectedCard, cards) {
   // parse out card prompt and use it to determine card details
-  var cardPrompt = selectedCard.cards.split(' -->')[0],
+  var cardPrompt = selectedCard.split(' -->')[0],
     cardDetails = cards.filter(card => card.prompt == cardPrompt)[0],
     cardId = cardDetails._id,
-    cardPrompt = cardDetails.prompt,
     promptExample = cardDetails.promptExample,
     cardTarget = cardDetails.target,
     targetExample = cardDetails.targetExample;
