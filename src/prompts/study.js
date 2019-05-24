@@ -5,7 +5,7 @@ import { prompt } from 'inquirer';
 import deckCtrlrs from '../resources/deck/deck.controllers';
 import cardCtrls from '../resources/card/card.controllers';
 
-import { STUDY_CARDS_WHICH_DECK } from '../utils/promptMessages';
+import { STUDY_CARDS_WHICH_DECK } from '../utils/strings';
 import { SINGLE_CHOICE } from '../utils/promptTypes';
 
 import { 

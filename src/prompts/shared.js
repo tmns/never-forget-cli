@@ -7,23 +7,31 @@ registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
 // prompts the user if they wish to create another item immediately
 async function isCreatingAnother(item) {
+  let message = `Would you like to create another ${item}?`;
+  let defaultVal = false;
+  let answer = await promptConfirm(message, defaultVal);
+
+  return answer;
+}
+
+// presents the user with a 'confirm' prompt given a message and default answer
+async function promptConfirm(message, defaultVal) {
   let answer = await prompt([
     {
       type: 'confirm',
-      name: 'addAnother',
-      message: `Would you like to create another ${item}?`,
-      default: true
+      name: 'value',
+      message: message,
+      default: defaultVal  
     }
   ])
-
-  return answer.addAnother;
+  return answer.value;
 }
 
 // formats a deck name and description for presenting the info
 // as a choice in a list to the user.
-function decksToChoices(deck) {
-  let choice = deck.name;
-  if (deck.description) {
+function deckToChoice(deck) {
+  var choice = deck.name;
+  if (deck.description != '') {
     choice += `: ${deck.description}`;
   }
   return choice;
@@ -48,7 +56,7 @@ function getDeckProperties(decks, selectedDeck) {
 // Helper function to prompt user with deck choices and return selection
 async function getSelectedDecks(decks, message, type) {
 
-  var choices = decks.map(decksToChoices);
+  var choices = decks.map(deckToChoice);
 
   choices.push('** exit **');
 
@@ -91,8 +99,8 @@ function fuzzySearch(answersSoFar, input, choices) {
 }
 
 export { 
-  isCreatingAnother, 
-  decksToChoices, 
+  isCreatingAnother,
+  promptConfirm,
   getDeckProperties,
   getSelectedDecks, 
   asyncForEach,

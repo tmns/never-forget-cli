@@ -10,6 +10,7 @@ import deckCtrlrs from '../resources/deck/deck.controllers';
 
 import {
   isCreatingAnother,
+  promptConfirm,
   getDeckProperties,
   getSelectedDecks,
   asyncForEach,
@@ -25,8 +26,10 @@ import {
   BROWSE_CARDS_WHICH_DECK,
   BROWSE_CARDS_WHICH_CARD,
   EXPORT_CARDS_WHICH_DECK,
-  IMPORT_CARDS_WHICH_DECK
-} from '../utils/promptMessages';
+  IMPORT_CARDS_WHICH_DECK,
+  EXIT,
+  GO_BACK_TO_DECKS
+} from '../utils/strings';
 
 import { SINGLE_CHOICE, MULTIPLE_CHOICE } from '../utils/promptTypes';
 
@@ -55,7 +58,7 @@ async function addCard(_, deckId) {
     let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
     // check if user wants to exit
-    if (selectedDeck.decks == '** exit **') {
+    if (selectedDeck == EXIT) {
       console.log('Exiting...');
       process.exit();
     }
@@ -148,7 +151,7 @@ async function deleteCards() {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -164,10 +167,10 @@ async function deleteCards() {
   var selectedCards = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCards.includes('<-- go back to decks')) {
+  if (selectedCards.includes(GO_BACK_TO_DECKS)) {
     await deleteCards();
   }
-  if (selectedCards.includes('** exit **')) {
+  if (selectedCards.includes(EXIT)) {
     console.log('Exiting...');
     process.exit();
   }
@@ -180,18 +183,13 @@ async function deleteCards() {
   }
 
   // confirm user wants to delete the selected card(s)
-  var isSure = await prompt([
-    {
-      type: 'confirm',
-      name: 'deleteCards',
-      message: `You've chosen to delete the following card(s): ${selectedCards.join(
-        ', '
-      )}. This cannot be undone. Are you sure this is what you want to do?`,
-      default: false
-    }
-  ]);
+  let message = 
+  `You've chosen to delete the following card(s): ${selectedCards.join(', ')}. 
+  This cannot be undone. Are you sure this is what you want to do?`;
+  let defaultVal = false;
+  let isSure = await promptConfirm(message, defaultVal);
 
-  if (isSure.deleteCards) {
+  if (isSure) {
     // we'll determine our card IDs based on their prompt values
     // so let's first parse it out
     let cardPrompts = selectedCards.map(function parsePrompt(card) {
@@ -244,7 +242,7 @@ async function editCardDetails() {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -260,10 +258,10 @@ async function editCardDetails() {
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCard == '<-- go back to decks') {
+  if (selectedCard == GO_BACK_TO_DECKS) {
     await editCardDetails();
   }
-  if (selectedCard == '** exit **') {
+  if (selectedCard == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -360,7 +358,7 @@ async function browseCards(_, deckId) {
     let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
     // check if user wants to exit
-    if (selectedDeck.decks == '** exit **') {
+    if (selectedDeck == EXIT) {
       console.log('Exiting...');
       process.exit();
     }
@@ -377,10 +375,10 @@ async function browseCards(_, deckId) {
   let selectedCard = await getSelectedCards(cards, cardMessage, cardType);
 
   // check if user wants to go back or exit
-  if (selectedCard == '<-- go back to decks') {
+  if (selectedCard == GO_BACK_TO_DECKS) {
     await browseCards();
   }
-  if (selectedCard == '** exit **') {
+  if (selectedCard == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -403,16 +401,11 @@ async function browseCards(_, deckId) {
   );
 
   // determine if user wants to continue browsing the deck
-  let answer = await prompt([
-    {
-      type: 'confirm',
-      name: 'continue',
-      message: `Would you like to continue browsing ${deckName}?`,
-      default: true
-    }
-  ]);
+  let message = `Would you like to continue browsing ${deckName}?`;
+  let defaultVal = true;
+  let isContinuing = await promptConfirm(message, defaultVal);
 
-  if (answer.continue) {
+  if (isContinuing) {
     await browseCards(_, deckId);
   }
 
@@ -433,7 +426,7 @@ async function exportCards() {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -495,7 +488,7 @@ async function importCards() {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == '** exit **') {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -559,7 +552,7 @@ async function getSelectedCards(cards, message, type) {
     return `${card.prompt} --> ${card.target}`;
   });
 
-  choices.push('<-- go back to decks', '** exit **');
+  choices.push(GO_BACK_TO_DECKS, EXIT);
 
   var selectedCards = await prompt([
     {

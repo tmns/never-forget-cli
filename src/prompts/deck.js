@@ -7,6 +7,7 @@ import cardCtrlrs from '../resources/card/card.controllers';
 
 import { 
   isCreatingAnother,
+  promptConfirm,
   asyncForEach,
   getSelectedDecks,
   getDeckProperties
@@ -15,7 +16,7 @@ import {
 import { 
   DEL_DECK_WHICH_DECK,
   EDIT_DECK_WHICH_DECK 
-} from '../utils/promptMessages';
+} from '../utils/strings';
 
 import {
   SINGLE_CHOICE,
@@ -29,54 +30,19 @@ registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 // 2) Create deck in database
 // 3) Ask user if they want to create another deck immediately
 async function createDeck() {
+  // get list of decks for unique deck name validation
+  let decks = await deckCtrlrs.getMany({});
 
-  var answers = await prompt([
-    {
-      type: 'input',
-      name: 'deckName',
-      message: "You've chosen to create a deck. What do you want to name it?",
-      validate: async function(value) {
-        // due to how we parse decks during card adding, we can't allow ':'
-        var pass = value.trim().match(/^(?!.*:.*)^.+/); 
+  // prompt user to input deck name and description
+  let details = await promptCreateDeck(decks);
 
-        // retrieve all decks from database to test if deck name already exists
-        let decks = await deckCtrlrs.getMany({});
-        let deckNames = decks.map(deck => deck.name);
-
-        let alreadyExist = deckNames.includes(value);
-        
-        if (pass && !alreadyExist) {
-          return true;
-        }
-        
-        return 'Sorry, you must give the deck a unique name (and the ":" character is not allowed).';
-      }
-    },
-    {
-      type: 'input',
-      name: 'deckDescription',
-      message: 'Provide a description for your new deck (optional)',
-      validate: function(value) {
-        var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
-        if (pass) {
-          return true;
-        }
-        return 'Sorry,  the ":" character is not allowed.';
-      }
-    }
-  ]);
-
-  let details = { name: answers.deckName };
-  if (answers.deckDescription != '') {
-    details['description'] = answers.deckDescription;
-  }
-
+  // attempt to create deck in db
   try {
     await deckCtrlrs.createOne(details);
     console.log(
-      `Deck ${
+      `Deck "${
         details.name
-      } successfully created. Now you can (i)mport or (a)dd some cards to it!`
+      }" successfully created. Now you can (i)mport or (a)dd some cards to it!`
     );
   } catch (err) {
     console.log(`Error encountered while creating deck: ${err}.\nExiting...`);
@@ -125,16 +91,13 @@ async function deleteDecks() {
   })
 
   // prompt the user for confirmation
-  var isSure = await prompt([
-    {
-      type: 'confirm',
-      name: 'deleteDecks',
-      message: `You've chosen to delete the following deck(s): ${deckNames.join(', ')}. This will permenantly remove both the decks and their containing cards. Are you sure this is what you want to do?`,
-      default: false
-    }
-  ]);
+  let message = 
+  `You've chosen to delete the following deck(s): ${deckNames.join(', ')}. 
+  This will permenantly remove both the decks and their containing cards. Are you sure this is what you want to do?`;
+  let defaultVal = false;
+  let isSure = await promptConfirm(message, defaultVal);
 
-  if (isSure.deleteDecks) {
+  if (isSure) {
     // create list of deck IDs for query
     let deckIds = [];
     deckNames.forEach(function addToDeckIds(deckName) {
@@ -195,53 +158,12 @@ async function editDeckDetails () {
   // get deck properties for future use  
   var [deckId, deckName, deckDescription] = await getDeckProperties(decks, selectedDeck);
 
-  console.log(`You've chosen to edit the details of ${deckName}...`)
+  console.log(`You've chosen to edit the details of ${deckName}...`);
 
-  var answers = await prompt([
-    {
-      type: 'input',
-      name: 'deckName',
-      message: 'Deck name',
-      default: deckName,
-      validate: function(value) {
-        // due to how we parse decks during card adding, we can't allow ':'
-        var pass = value.trim().match(/^(?!.*:.*)^.+/); 
+  // prompt user for deck name and description
+  let details = await promptEditDeck(deckName, deckDescription, decks);
 
-        // create list of deck names to check if new name already exists
-        let deckNames = decks.map(deck => deck.name);
-
-        let alreadyExist = false;
-        if (value != deckName && deckNames.includes(value)) {
-          alreadyExist = true;
-        };
-        
-        if (pass && !alreadyExist) {
-          return true;
-        }
-        
-        return 'Sorry, you must give the deck a unique name (and the ":" character is not allowed).';
-      }
-    },
-    {
-      type: 'input',
-      name: 'deckDescription',
-      message: 'Deck description (optional)',
-      default: deckDescription,
-      validate: function(value) {
-        var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
-        if (pass) {
-          return true;
-        }
-        return 'Sorry,  the ":" character is not allowed.';
-      }
-    }
-  ]);
-
-  let details = { name: answers.deckName };
-  if (answers.deckDescription != '') {
-    details['description'] = answers.deckDescription;
-  }
-
+  // attempt to udpate deck in db
   try {
     await deckCtrlrs.updateOne(deckId, details);
     console.log(`Deck "${deckName}" successfully updated.`);
@@ -250,6 +172,95 @@ async function editDeckDetails () {
   }
 
   process.exit();
+}
+
+// ******************* HELPER FUNCTIONS *******************
+
+// prompts user for deck name and description
+async function promptCreateDeck(decks) {
+  var answers = await prompt([
+    {
+      type: 'input',
+      name: 'deckName',
+      message: "You've chosen to create a deck. What do you want to name it?",
+      validate: validateDeckName(null, decks)
+    },
+    {
+      type: 'input',
+      name: 'deckDescription',
+      message: 'Provide a description for your new deck (optional)',
+      validate: validateDeckDescription
+    }
+  ]);
+
+  return {
+    name: answers.deckName.trim(), 
+    description: answers.deckDescription.trim()
+  }
+}
+
+// prompts user for new deck name and description
+async function promptEditDeck(deckName, deckDescription, decks) {
+  var answers = await prompt([
+    {
+      type: 'input',
+      name: 'deckName',
+      message: 'Deck name',
+      default: deckName,
+      validate: validateDeckName(deckName, decks)
+    },
+    {
+      type: 'input',
+      name: 'deckDescription',
+      message: 'Deck description (optional)',
+      default: deckDescription,
+      validate: validateDeckDescription
+    }
+  ]);
+
+  return { 
+    name: answers.deckName.trim(), 
+    description: answers.deckDescription.trim()
+  };
+}
+
+// validates desired deck name
+function validateDeckName(deckName, decks) {
+  return async function validate(value) {
+    // due to how we parse decks during card adding, we can't allow ':'
+    var pass = value.trim().match(/^(?!.*:.*)^.+/);
+
+    // create list of deck names to check if new name already exists
+    var deckNames = decks.map(deck => deck.name);
+
+    // check if value already exists
+    // ie, if a deck already exists with the desired name
+    // first we assume it doesn't...
+    var alreadyExist = false;
+    // ...if deckName was not passed, this means we're creating and simply
+    // check if value already exists
+    if (!deckName) {
+      alreadyExist = deckNames.includes(value);
+    } else {
+      // we're editing a card and so we must also check if the value is the current deckName
+      alreadyExist = deckNames.includes(value) && value != deckName;
+    }
+
+    if (pass && !alreadyExist) {
+      return true;
+    }
+    
+    return 'Sorry, you must give the deck a unique name (and the ":" character is not allowed).';
+  }
+}
+
+// validates desired deck description
+function validateDeckDescription(value) {
+  var pass = value.trim().match(/^(?!.*:.*)^.*/); // due to how we parse decks during card adding, we can't allow ':'
+  if (pass) {
+    return true;
+  }
+  return 'Sorry,  the ":" character is not allowed.';
 }
 
 export { createDeck, deleteDecks, editDeckDetails };
