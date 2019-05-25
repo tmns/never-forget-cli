@@ -8,7 +8,6 @@ describe('Card model', () => {
       expect(prompt).toEqual({
         type: String,
         required: true,
-        unique: true,
         trim: true
       });
     });

@@ -345,18 +345,17 @@ async function exportCards() {
     answer.exportPath,
     `${deckName.split(' ').join('-')}-export.json`
   );
+
+  // determine if user wants to also export progress for each card
+  let message = "Would you also like to export your progress for each card?";
+  let defaultVal = true;
+  let isExportingProgress = await  promptConfirm(message, defaultVal);
+
   console.log(`Exporting cards from deck "${deckName}" to ${exportPath}`);
 
   // query db for associated cards and format them
   let cards = await cardCtrlrs.getMany({ deck: deckId });
-  let formattedCards = cards.map(function format(card) {
-    return {
-      prompt: card.prompt,
-      promptExample: card.promptExample,
-      target: card.target,
-      targetExample: card.targetExample
-    };
-  });
+  let formattedCards = cards.map(formatCardForExport(isExportingProgress));
 
   // attempt to write JSON.stringify'd cards to export path
   try {
@@ -369,6 +368,26 @@ async function exportCards() {
   }
 
   process.exit();
+}
+
+// helper function to place appropriate properties in card object to be exported
+function formatCardForExport(isExportingProgress) {
+  return function format(card) {
+    var formattedCard = {
+      prompt: card.prompt,
+      promptExample: card.promptExample,
+      target: card.target,
+      targetExample: card.targetExample
+    }
+
+    if (isExportingProgress) {
+      formattedCard['timeAdded'] = card.timeAdded;
+      formattedCard['nextReview'] = card.nextReview;
+      formattedCard['intervalProgress'] = card.intervalProgress;
+    }
+
+    return formattedCard;
+  }
 }
 
 // Walks user through importing a deck of cards
@@ -585,18 +604,18 @@ function getCardProps(selectedCard, cards) {
 // Takes a plain card object and prepares it for making a query
 function prepareCardForQuery(deckId, isAdding = true) {
   return function prepare(cardObject) {
-    var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS),
-      cardForQuery = {
-        prompt: cardObject.prompt.trim(),
-        promptExample: cardObject.promptExample.trim(),
-        target: cardObject.target.trim(),
-        targetExample: cardObject.targetExample.trim(),
-      };
+    var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
+    var cardForQuery = {
+      prompt: cardObject.prompt.trim(),
+      promptExample: cardObject.promptExample.trim(),
+      target: cardObject.target.trim(),
+      targetExample: cardObject.targetExample.trim(),
+    };
 
     if (isAdding) {
-      cardForQuery['timeAdded'] = now;
-      cardForQuery['nextReview'] = now;
-      cardForQuery['intervalProgress'] = 0;
+      cardForQuery['timeAdded'] = cardObject.timeAdded ? cardObject.timeAdded : now;
+      cardForQuery['nextReview'] = cardObject.nextReview ? cardObject.nextReview : now;
+      cardForQuery['intervalProgress'] = cardObject.intervalProgress ? cardObject.intervalProgress : 0;
     }
 
     if (deckId !== null) {
@@ -613,6 +632,7 @@ export {
   editCardDetails,
   browseCards,
   exportCards,
+  formatCardForExport,
   importCards,
   validatePrompt,
   prepareCardForQuery,

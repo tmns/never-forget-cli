@@ -3,7 +3,8 @@
 import { 
   prepareCardForQuery,
   validatePrompt,
-  getCardProps
+  getCardProps,
+  formatCardForExport
  } from '../card';
 
 import { getMany } from '../../utils/crud';
@@ -98,6 +99,30 @@ describe('card prompts helper functions', () => {
       expect(cardForQuery.nextReview).toBe(undefined);
       expect(cardForQuery.intervalProgress).toBe(undefined);
       expect(cardForQuery.deck).toBe(undefined);
+    })
+
+    test('returns a card object ready for create query given a deck id and raw card answer object with all details filled in, including progres (ie importing with progress)', async () => {
+      expect.assertions(8);
+      let deck = await Deck.create({ name: 'test-deck' });
+      let isAdding = true;
+      let cardObject = {
+        prompt: 'test-prompt',
+        promptExample: 'test-prompt-ex',
+        target: 'test-target',
+        targetExample: 'test-target-ex',
+        timeAdded: 12312,
+        nextReview: 18732,
+        intervalProgress: 4
+      };
+      let cardForQuery = prepareCardForQuery(deck._id, isAdding)(cardObject);
+      expect(cardForQuery.prompt).toBe('test-prompt');
+      expect(cardForQuery.promptExample).toBe('test-prompt-ex');
+      expect(cardForQuery.target).toBe('test-target');
+      expect(cardForQuery.targetExample).toBe('test-target-ex');
+      expect(cardForQuery.timeAdded).toBe(12312);
+      expect(cardForQuery.nextReview).toBe(18732);
+      expect(cardForQuery.intervalProgress).toBe(4);
+      expect(cardForQuery.deck).toBe(deck._id);
     })
   })
 
@@ -227,5 +252,59 @@ describe('card prompts helper functions', () => {
       expect(cardProps.targetExample).toBe(card.targetExample);
       expect(cardProps.id.toString()).toBe(card._id.toString());
     })
+  })
+
+  describe('formatCardForExport', async () => {
+    test('returns card object with correct properties when user wants to export without progress data', async () => {
+      expect.assertions(7);
+      let deck = await Deck.create({ name: 'test-deck' });
+      let card = await Card.create({
+        prompt: 'test-prompt',
+        promptExample: 'test-prompt-ex',
+        target: 'test-target',
+        targetExample: 'test-target-ex',
+        intervalProgress: 3,
+        timeAdded: now + 32,
+        nextReview: now + 64,
+        deck: deck._id
+      });
+
+      let isExportingProgress = false;
+      let formattedCard = formatCardForExport(isExportingProgress)(card);
+
+      expect(formattedCard.prompt).toBe(card.prompt);
+      expect(formattedCard.promptExample).toBe(card.promptExample);
+      expect(formattedCard.target).toBe(card.target);
+      expect(formattedCard.targetExample).toBe(card.targetExample);
+      expect(formattedCard.intervalProgress).toBe(undefined);
+      expect(formattedCard.timeAdded).toBe(undefined);
+      expect(formattedCard.nextReview).toBe(undefined);
+    })
+
+    test('returns card object with correct properties when user wants to export with progress data', async () => {
+      expect.assertions(7);
+      let deck = await Deck.create({ name: 'test-deck' });
+      let card = await Card.create({
+        prompt: 'test-prompt',
+        promptExample: 'test-prompt-ex',
+        target: 'test-target',
+        targetExample: 'test-target-ex',
+        intervalProgress: 3,
+        timeAdded: now + 32,
+        nextReview: now + 64,
+        deck: deck._id
+      });
+
+      let isExportingProgress = true;
+      let formattedCard = formatCardForExport(isExportingProgress)(card);
+
+      expect(formattedCard.prompt).toBe(card.prompt);
+      expect(formattedCard.promptExample).toBe(card.promptExample);
+      expect(formattedCard.target).toBe(card.target);
+      expect(formattedCard.targetExample).toBe(card.targetExample);
+      expect(formattedCard.intervalProgress).toBe(3);
+      expect(formattedCard.timeAdded).toBe(now + 32);
+      expect(formattedCard.nextReview).toBe(now + 64);
+    })    
   })
 })

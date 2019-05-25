@@ -4,7 +4,6 @@ const cardSchema = new mongoose.Schema({
   prompt: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   target: {
