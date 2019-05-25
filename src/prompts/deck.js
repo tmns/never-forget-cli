@@ -260,4 +260,9 @@ function validateDescription(value) {
   return 'Sorry,  the ":" character is not allowed.';
 }
 
-export { createDeck, deleteDecks, editDeckDetails };
+export { 
+  createDeck, 
+  deleteDecks, 
+  editDeckDetails,
+  validateName
+};
