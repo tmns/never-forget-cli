@@ -65,7 +65,7 @@ Feedback and contributions are welcome. Feel free to create issues, fork, submit
 
 To run tests, simply execute the following in the project root:
 ```
-$ node test
+$ npm test
 ```
 
 **PR's that do *not* include output from the above command will be rejected automatically!**
