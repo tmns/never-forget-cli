@@ -4,7 +4,7 @@ A CLI version of *Never Forget*, a spaced repetition learning app.
 
 It makes heavy use of [Inquirer](https://github.com/SBoudrias/Inquirer.js) and [Commander](https://github.com/tj/commander.js) to interact with the user and make the experience pleasant.
 
-For the Spaced Repetition functionality I worked off of and adapted / modified the [memory-scheduler](https://github.com/lo-tp/memory-scheduler) algorithm. At the moment, the adapted version uses hour-based intervals rather than day-based. This can be easily changed though and is something I am still experimenting with.
+For the Spaced Repetition functionality I worked off of and adapted / modified the [memory-scheduler](https://github.com/lo-tp/memory-scheduler) algorithm. At the moment, the adapted version uses hour-based intervals rather than day-based. You can change this by playing with the values in `src/prompts/study.js`.
 
 ## Features
 So far, all of the main functionality has been implemented. You can:
@@ -21,7 +21,7 @@ So far, all of the main functionality has been implemented. You can:
 * Study cards
 
 Todo:
-* Write tests
+* Test and observe behavior over an extended period of time to fine tune intervals (personal goal)
 
 ## Build 
 To build, `cd` to project root and run:
@@ -64,4 +64,7 @@ Once you have the database connection string, you can either run `yarn start c` 
 This library may be used under the WTFPL - or, if you take issue with that, consider it to be under the CC0.
 
 ## Contributing
-Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc.
+Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc. To run tests, simply execute:
+```
+yarn test
+```
