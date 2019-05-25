@@ -64,7 +64,9 @@ Once you have the database connection string, you can either run `yarn start c` 
 This library may be used under the WTFPL - or, if you take issue with that, consider it to be under the CC0.
 
 ## Contributing
-Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc. To run tests, simply execute:
+Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc. 
+
+To run tests, simply execute the following in the project root:
 ```
-yarn test
+$ yarn test
 ```
