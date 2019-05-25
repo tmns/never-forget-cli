@@ -20,9 +20,6 @@ So far, all of the main functionality has been implemented. You can:
 * Export cards
 * Study cards
 
-Todo:
-* Test and observe behavior over an extended period of time to fine tune intervals (personal goal)
-
 ## Build 
 To build, `cd` to project root and run:
 ```
@@ -64,9 +61,11 @@ Once you have the database connection string, you can either run `yarn start c` 
 This library may be used under the WTFPL - or, if you take issue with that, consider it to be under the CC0.
 
 ## Contributing
-Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc. 
+Feedback and contributions are welcome. Feel free to create issues, fork, submit pull requests, etc. However, if you make any changes to the application logic, make sure to run the full test suite before opening a PR. 
 
 To run tests, simply execute the following in the project root:
 ```
 $ yarn test
 ```
+
+**PR's that do *not* include output from the above command will be rejected automatically!**
