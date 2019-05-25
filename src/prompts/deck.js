@@ -223,7 +223,7 @@ async function promptEditDeck(deckName, deckDescription, decks) {
 
 // validates desired deck name
 function validateName(deckName, decks) {
-  return async function validate(value) {
+  return function validate(value) {
     // due to how we parse decks during card adding, we can't allow ':'
     var pass = value.trim().match(/^(?!.*:.*)^.+/);
 

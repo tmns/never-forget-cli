@@ -6,9 +6,7 @@ import {
   getNewProgressValues
 } from '../study';
 
-import {
-  getOne
-} from '../../utils/crud';
+import { getOne } from '../../utils/crud';
 
 import { Card } from '../../resources/card/card.model';
 import { Deck } from '../../resources/deck/deck.model';
@@ -66,7 +64,9 @@ describe('study prompts helper functions', () => {
       let deck = await Deck.create({ name: 'test-deck' });
       let card = await Card.create({
         prompt: 'test-prompt',
+        promptExample: 'test-prompt-ex',
         target: 'test-target',
+        targetExample: 'test-target-ex',
         intervalProgress: 3,
         timeAdded: now,
         nextReview: now,

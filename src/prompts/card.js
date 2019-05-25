@@ -506,7 +506,7 @@ async function promptEditCard(cardProps, cards) {
 
 // validate desired card prompt for creating and editing
 function validatePrompt(cardPrompt, cards) {
-  return async function validate(value) {
+  return function validate(value) {
     var pass = value.trim().match(/^.+/);
 
     // create list of card prompts to check if prompt already exists
@@ -613,5 +613,8 @@ export {
   editCardDetails,
   browseCards,
   exportCards,
-  importCards
+  importCards,
+  validatePrompt,
+  prepareCardForQuery,
+  getCardProps
 };

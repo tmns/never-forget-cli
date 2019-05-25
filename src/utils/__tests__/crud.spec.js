@@ -97,7 +97,9 @@ async function createTestCard(promptName, deckId) {
   
   let card = await Card.create({
     prompt: 'test-prompt',
+    promptExample: 'tet-prompt-ex',
     target: 'test-target',
+    targetExample: 'test-target-ex',
     intervalProgress: 0,
     timeAdded: now,
     nextReview: now,
