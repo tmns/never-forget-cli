@@ -147,7 +147,7 @@ async function quizUserAndGetScores(overDueCards) {
 async function attemptUpdateProgress(card, cardScore) {
   // calculate the new progress values
   let now = Math.floor(new Date().getTime() / HOUR_IN_MILIS);
-  let { nextReview, newTimesCorrect } = getNewProgressValues(cardScore, card.timesCorrect, now);
+  let { nextReview, newIntervalProgress } = getNewProgressValues(cardScore, card.intervalProgress, now);
 
   // construct next time for review string
   let nextTime = nextReview - now;
@@ -158,7 +158,8 @@ async function attemptUpdateProgress(card, cardScore) {
 
   // attempt database update query
   try {
-    await cardCtrls.updateOne(card._id, { nextReview, newTimesCorrect });
+    var newCard = await cardCtrls.updateOne(card._id, { nextReview, intervalProgress: newIntervalProgress });
+    console.log(newCard);
     console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
@@ -166,10 +167,11 @@ async function attemptUpdateProgress(card, cardScore) {
 }
 
 // Helper function to calculate the new progress values of card
-// ie, updated review date and number of consecutive times correct
+// ie, updated review date and invterval progress correct
 // adapted from: https://github.com/lo-tp/memory-scheduler
-function getNewProgressValues(score, timesCorrect, now) {
+function getNewProgressValues(score, intervalProgress, now) {
   // our setup intervals and scores to change intervals
+  // a card begins with a review time of 2 hrs from current time
   var intervals = [2, 4, 6, 16, 34];
   var scoreToIntervalChange = [-3, -1, 1];
 
@@ -181,26 +183,36 @@ function getNewProgressValues(score, timesCorrect, now) {
   }
 
   // determine next review date
+  // in the case of user not knowing the answer immediately
+  // we simply add 2 hrs to the current time.
   var nextReview = now + 2;
   if (knewImmediately) {
-    if (timesCorrect < intervals.length) {
-      nextReview = now + intervals[timesCorrect];
+    // if the interval progress is less than our intervals length,
+    // we add the relative interval to the current time
+    if (intervalProgress < intervals.length) {
+      nextReview = now + intervals[intervalProgress];
     } 
-    else if (timesCorrect >= intervals.length) {
-      nextReview = now + (intervals.slice(-1) * ((timesCorrect + 1) - intervals.length));
+    else if (intervalProgress >= intervals.length) {
+      // else, we double the last interval and add it to the current time
+      nextReview = now + (intervals.slice(-1) * (intervalProgress + 1 - intervals.length) * 2);
     }
   }
 
-  // determine new timesCorrect, if less than 0, normalize to 0
-  let newTimesCorrect = timesCorrect + scoreToIntervalChange[score];
-  if (newTimesCorrect < 0) {
-    newTimesCorrect = 0;
+  // determine new interval progress, if less than 0, normalize to 0
+  let newIntervalProgress = intervalProgress + scoreToIntervalChange[score];
+  if (newIntervalProgress < 0) {
+    newIntervalProgress = 0;
   }
   
   return {
     nextReview,
-    newTimesCorrect
+    newIntervalProgress
   }
 }
 
-export { HOUR_IN_MILIS, studyCards };
+export { 
+  HOUR_IN_MILIS, 
+  studyCards,
+  attemptUpdateProgress,
+  getNewProgressValues
+};

@@ -16,7 +16,7 @@ import { Card } from '../../resources/card/card.model';
 
 describe('crud controllers', () => {
   describe('getOne', async () => {
-    test('finds an doc based on specified criteria', async () => {
+    test('finds a doc based on specified criteria', async () => {
       let deck = await Deck.create({ name: 'test-deck' });
       let card = await createTestCard('test-prompt', deck._id);
       let criteria = { prompt: card.prompt, deck: deck._id };
@@ -98,7 +98,7 @@ async function createTestCard(promptName, deckId) {
   let card = await Card.create({
     prompt: 'test-prompt',
     target: 'test-target',
-    timesCorrect: 0,
+    intervalProgress: 0,
     timeAdded: now,
     nextReview: now,
     deck: deckId

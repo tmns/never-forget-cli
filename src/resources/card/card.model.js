@@ -28,7 +28,7 @@ const cardSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  timesCorrect: {
+  intervalProgress: {
     type: Number,
     required: true
   },

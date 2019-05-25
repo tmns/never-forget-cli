@@ -75,8 +75,7 @@ async function addCard(_, deckId) {
   var cardAnswers = await promptAddCard(cards);
 
   // create the card details object we'll use for the query
-  let isAdding = true;
-  let cardForQuery = prepareCardForQuery(deckId)(cardAnswers, isAdding);
+  let cardForQuery = prepareCardForQuery(deckId)(cardAnswers);
 
   // attempt to create the card in db
   try {
@@ -230,7 +229,8 @@ async function editCardDetails() {
   let cardAnswers = await promptEditCard(cardProps, cards);
 
   // create our object we will use to update the card in the database
-  let newCardDetails = prepareCardForQuery(null)(cardAnswers);
+  let isAdding = false;
+  let newCardDetails = prepareCardForQuery(null, isAdding)(cardAnswers);
 
   // attempt to update card in database
   try {
@@ -583,8 +583,8 @@ function getCardProps(selectedCard, cards) {
 }
 
 // Takes a plain card object and prepares it for making a query
-function prepareCardForQuery(deckId) {
-  return function prepare(cardObject, isAdding = false) {
+function prepareCardForQuery(deckId, isAdding = true) {
+  return function prepare(cardObject) {
     var now = Math.floor(new Date().getTime() / HOUR_IN_MILIS),
       cardForQuery = {
         prompt: cardObject.prompt.trim(),
@@ -596,7 +596,7 @@ function prepareCardForQuery(deckId) {
     if (isAdding) {
       cardForQuery['timeAdded'] = now;
       cardForQuery['nextReview'] = now;
-      cardForQuery['timesCorrect'] = 0;
+      cardForQuery['intervalProgress'] = 0;
     }
 
     if (deckId !== null) {

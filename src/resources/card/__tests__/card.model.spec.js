@@ -54,9 +54,9 @@ describe('Card model', () => {
       });
     });
 
-    test('timesCorrect', () => {
-      let timesCorrect = Card.schema.obj.timesCorrect;
-      expect(timesCorrect).toEqual({
+    test('intervalProgress', () => {
+      let intervalProgress = Card.schema.obj.intervalProgress;
+      expect(intervalProgress).toEqual({
         type: Number,
         required: true
       });
