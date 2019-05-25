@@ -69,3 +69,7 @@ $ npm test
 ```
 
 **PR's that do *not* include output from the above command will be rejected automatically!**
+
+Finally, if you want to contribute in a different way, you can always buy me a coffee ^_^
+
+[![Buy me a coffee](https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png)](https://www.buymeacoffee.com/tmns)
