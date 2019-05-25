@@ -158,8 +158,7 @@ async function attemptUpdateProgress(card, cardScore) {
 
   // attempt database update query
   try {
-    var newCard = await cardCtrls.updateOne(card._id, { nextReview, intervalProgress: newIntervalProgress });
-    console.log(newCard);
+    await cardCtrls.updateOne(card._id, { nextReview, intervalProgress: newIntervalProgress });
     console.log(`Card progress updated. This card is scheduled for another review in ${nextTimeString}.`)
   } catch (err) {
     throw new Error(`Error encountered while updating card progress: ${err}.\nExiting...`);
