@@ -311,7 +311,7 @@ async function browseCards(_, deckId) {
 
 // Walks user through exporting a deck of cards
 // 1) Present user with choice of decks
-// 2) Prompt user for path to export to (default is index.js's current dir)
+// 2) Prompt user for path to export to (default is current dir)
 // 3) Retrieve cards associated with deck from db
 // 4) Attempt to write JSON.stringify'd cards to export path
 async function exportCards() {
@@ -392,7 +392,7 @@ function formatCardForExport(isExportingProgress) {
 
 // Walks user through importing a deck of cards
 // 1) Present user with choice of decks
-// 2) Prompt user for path to import from (default is index.js's current dir)
+// 2) Prompt user for path to import from (default is current dir)
 // 3) Retrieve to read JSON.parse'd cards
 // 4) Create a card in the database for each card
 async function importCards() {

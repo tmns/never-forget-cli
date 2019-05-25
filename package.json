@@ -2,15 +2,15 @@
   "name": "never-forget-cli",
   "version": "1.0.0",
   "description": "CLI for Never Forget, a spaced repetition learning app",
-  "main": "index.js",
+  "main": "app.js",
   "author": "tmns <tmn5@pm.me>",
   "license": "WTFPL",
   "scripts": {
     "build": "babel src --out-dir dist",
     "test": "NODE_ENV=testing jest --forceExit --detectOpenHandles  --silent",
-    "dev": "nodemon --exec yarn restart",
-    "restart": "rimraf dist && yarn build && yarn start",
-    "start": "node dist/index.js"
+    "dev": "nodemon --exec npm run restart",
+    "restart": "rimraf dist && npm run build",
+    "start": "node dist/app.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
