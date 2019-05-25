@@ -6,7 +6,7 @@ import {
   getCardProps
  } from '../card';
 
- import { getMany } from '../../utils/crud';
+import { getMany } from '../../utils/crud';
 
 import { HOUR_IN_MILIS } from '../study';
 
