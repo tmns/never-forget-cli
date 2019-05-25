@@ -33,7 +33,7 @@ async function studyCards () {
   let selectedDeck = await getSelectedDecks(decks, deckMessage, deckType);
 
   // check if user wants to exit
-  if (selectedDeck.decks == EXIT) {
+  if (selectedDeck == EXIT) {
     console.log('Exiting...');
     process.exit();
   }
@@ -70,6 +70,11 @@ async function studyCards () {
     }
   ]);
 
+  if (answer.limit == 0) {
+    console.log('You chose to study 0 cards.\nExiting...');
+    process.exit();
+  }
+
   // sort cards by date in ascending order (ie, oldest card first)
   // and set the amount presented to user's limit
   let cardsToStudy = overDueCards.sort((a, b) => a.timeAdded - b.timeAdded).slice(0, answer.limit)
@@ -77,7 +82,7 @@ async function studyCards () {
   // quiz user with cards and retrieve the score given to each card by the user
   try {
     await quizUserAndGetScores(cardsToStudy);
-    console.log(`\nGreat job! You studied ${numCards} card(s)!\nDon't forget to check back soon to keep studying cards scheduled for review!\n`)
+    console.log(`\nGreat job! You studied ${answer.limit} card(s)!\nDon't forget to check back soon to keep studying cards scheduled for review!\n`)
   } catch (err) {
     console.log(err);
   }
